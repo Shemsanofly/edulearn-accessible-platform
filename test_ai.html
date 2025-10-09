@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Support Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f7fb;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .quick-btn {
+            background: #4361ee;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        .quick-btn:hover {
+            background: #3f37c9;
+        }
+        .chat-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .send-btn {
+            background: #4361ee;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: #fafafa;
+            margin: 10px 0;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .user-message {
+            background: #4361ee;
+            color: white;
+            text-align: right;
+            margin-left: 20%;
+        }
+        .ai-message {
+            background: white;
+            border: 1px solid #ddd;
+            margin-right: 20%;
+        }
+        .typing-indicator {
+            opacity: 0.7;
+            font-style: italic;
+        }
+        .typing-dots {
+            display: inline-flex;
+            gap: 2px;
+            margin-left: 5px;
+        }
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4361ee;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        .status {
+            padding: 10px;
+            background: #e8f4ff;
+            border-radius: 6px;
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🤖 AI Support Test</h1>
+        
+        <div class="status" id="status">
+            Ready to test AI functionality! Try the quick questions below or type your own.
+        </div>
+        
+        <div class="test-section">
+            <h2>Quick Question Buttons</h2>
+            <button class="quick-btn" onclick="askQuickQuestion('How do I solve quadratic equations?')">
+                📊 Math Problems
+            </button>
+            <button class="quick-btn" onclick="askQuickQuestion('Explain photosynthesis step by step')">
+                🌱 Science Concepts
+            </button>
+            <button class="quick-btn" onclick="askQuickQuestion('How to write a good essay?')">
+                ✍️ Writing Help
+            </button>
+            <button class="quick-btn" onclick="askQuickQuestion('What happened in World War 2?')">
+                🌍 History Facts
+            </button>
+            <button class="quick-btn" onclick="askQuickQuestion('I am feeling stressed about exams')">
+                💪 Study Motivation
+            </button>
+            <button class="quick-btn" onclick="askQuickQuestion('How to improve memory?')">
+                🧠 Memory Tips
+            </button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Chat Interface</h2>
+            <div class="messages" id="messages">
+                <div class="message ai-message">
+                    🚀 Hello! I'm your AI study assistant. I can help with math, science, writing, and more. Try asking me a question!
+                </div>
+            </div>
+            <input type="text" class="chat-input" id="chatInput" placeholder="Type your question here..." onkeypress="handleEnterKey(event)">
+            <button class="send-btn" onclick="sendMessage()">Send Message</button>
+        </div>
+    </div>
+
+    <script>
+        const messagesContainer = document.getElementById('messages');
+        const chatInput = document.getElementById('chatInput');
+        const statusDiv = document.getElementById('status');
+
+        function askQuickQuestion(question) {
+            statusDiv.textContent = `Testing quick question: "${question}"`;
+            statusDiv.style.background = '#fff3cd';
+            statusDiv.style.color = '#856404';
+            
+            // Fill the input with the question
+            chatInput.value = question;
+            
+            // Automatically send the message
+            sendMessage();
+        }
+        
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, 'user');
+            
+            // Clear input
+            chatInput.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Update status
+            statusDiv.textContent = 'AI is processing your question...';
+            statusDiv.style.background = '#d1ecf1';
+            statusDiv.style.color = '#0c5460';
+            
+            // Simulate AI response delay
+            setTimeout(() => {
+                removeTypingIndicator();
+                const response = generateAIResponse(message);
+                addMessage(response, 'ai');
+                
+                // Update status
+                statusDiv.textContent = 'Response delivered successfully!';
+                statusDiv.style.background = '#d4edda';
+                statusDiv.style.color = '#155724';
+            }, 1000 + Math.random() * 1500); // 1-2.5 second delay
+        }
+        
+        function addMessage(content, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            messageDiv.innerHTML = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai-message typing-indicator';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                🤖 AI is thinking...
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+        
+        function handleEnterKey(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function generateAIResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            // Math-related responses
+            if (lowerMessage.includes('quadratic') || lowerMessage.includes('equation') || lowerMessage.includes('math')) {
+                return `📊 <strong>Quadratic Equations Help</strong><br><br>
+                        To solve quadratic equations (ax² + bx + c = 0):<br><br>
+                        <strong>Method 1: Quadratic Formula</strong><br>
+                        x = (-b ± √(b²-4ac)) / 2a<br><br>
+                        <strong>Method 2: Factoring</strong><br>
+                        Find two numbers that multiply to 'c' and add to 'b'<br><br>
+                        <strong>Example:</strong> x² + 5x + 6 = 0<br>
+                        Factors: (x + 2)(x + 3) = 0<br>
+                        Solutions: x = -2 or x = -3<br><br>
+                        Would you like me to solve a specific equation for you? 🧮`;
+            }
+            
+            // Science-related responses
+            if (lowerMessage.includes('photosynthesis') || lowerMessage.includes('science') || lowerMessage.includes('biology')) {
+                return `🌱 <strong>Photosynthesis Explained</strong><br><br>
+                        Photosynthesis is how plants make their food using sunlight:<br><br>
+                        <strong>Equation:</strong><br>
+                        6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂<br><br>
+                        <strong>Steps:</strong><br>
+                        1. <strong>Light Reactions:</strong> Chlorophyll captures sunlight<br>
+                        2. <strong>Dark Reactions (Calvin Cycle):</strong> CO₂ is converted to glucose<br><br>
+                        <strong>Location:</strong> Chloroplasts in plant cells<br>
+                        <strong>Products:</strong> Glucose (food) + Oxygen (we breathe this!)<br><br>
+                        This process is essential for all life on Earth! 🌍`;
+            }
+            
+            // Writing help responses
+            if (lowerMessage.includes('essay') || lowerMessage.includes('write') || lowerMessage.includes('writing')) {
+                return `✍️ <strong>Essay Writing Guide</strong><br><br>
+                        <strong>Essay Structure:</strong><br>
+                        1. <strong>Introduction</strong> - Hook, background, thesis statement<br>
+                        2. <strong>Body Paragraphs</strong> - Main points with evidence<br>
+                        3. <strong>Conclusion</strong> - Summarize and restate thesis<br><br>
+                        <strong>Writing Tips:</strong><br>
+                        • Start with an outline<br>
+                        • Use topic sentences for each paragraph<br>
+                        • Include evidence and examples<br>
+                        • Use transition words (however, therefore, moreover)<br>
+                        • Proofread for grammar and clarity<br><br>
+                        What type of essay are you working on? 📝`;
+            }
+            
+            // History responses
+            if (lowerMessage.includes('world war') || lowerMessage.includes('history') || lowerMessage.includes('war')) {
+                return `🌍 <strong>World War 2 Overview</strong><br><br>
+                        <strong>Duration:</strong> 1939-1945<br><br>
+                        <strong>Key Events:</strong><br>
+                        • 1939: Germany invades Poland<br>
+                        • 1941: Pearl Harbor attack, US enters war<br>
+                        • 1942: Battle of Midway<br>
+                        • 1944: D-Day invasion of Normandy<br>
+                        • 1945: Germany surrenders, atomic bombs, Japan surrenders<br><br>
+                        <strong>Major Powers:</strong><br>
+                        Allies: US, UK, USSR, China<br>
+                        Axis: Germany, Japan, Italy<br><br>
+                        The war reshaped global politics and led to the UN's formation. 🕊️`;
+            }
+            
+            // Stress/motivation responses
+            if (lowerMessage.includes('stress') || lowerMessage.includes('anxious') || lowerMessage.includes('exam') || lowerMessage.includes('worried')) {
+                return `💪 <strong>Exam Stress Management</strong><br><br>
+                        <strong>Before Exams:</strong><br>
+                        • Create a realistic study schedule<br>
+                        • Break large topics into smaller chunks<br>
+                        • Take regular breaks (Pomodoro technique)<br>
+                        • Get enough sleep (7-9 hours)<br><br>
+                        <strong>During Exams:</strong><br>
+                        • Arrive early and bring extra supplies<br>
+                        • Read all instructions carefully<br>
+                        • Start with questions you know<br>
+                        • Take deep breaths if feeling overwhelmed<br><br>
+                        <strong>Relaxation Tips:</strong><br>
+                        • Deep breathing exercises<br>
+                        • Light exercise or walking<br>
+                        • Talk to friends or family<br><br>
+                        Remember: You've prepared for this! Believe in yourself! 🌟`;
+            }
+            
+            // Memory improvement responses
+            if (lowerMessage.includes('memory') || lowerMessage.includes('remember') || lowerMessage.includes('forget')) {
+                return `🧠 <strong>Memory Improvement Techniques</strong><br><br>
+                        <strong>Active Learning:</strong><br>
+                        • Summarize information in your own words<br>
+                        • Teach concepts to others<br>
+                        • Create mind maps and diagrams<br><br>
+                        <strong>Memory Techniques:</strong><br>
+                        • <strong>Spaced Repetition:</strong> Review at increasing intervals<br>
+                        • <strong>Mnemonics:</strong> Create acronyms or rhymes<br>
+                        • <strong>Visualization:</strong> Create mental images<br>
+                        • <strong>Story Method:</strong> Link facts in a story<br><br>
+                        <strong>Healthy Habits:</strong><br>
+                        • Stay hydrated<br>
+                        • Exercise regularly<br>
+                        • Get quality sleep<br>
+                        • Eat brain-healthy foods (nuts, fish, berries)<br><br>
+                        Practice makes perfect! 🎯`;
+            }
+            
+            // Default response
+            return `🤖 <strong>Hi there!</strong><br><br>
+                    I'm your AI study assistant and I'm here to help! I can assist you with:<br><br>
+                    📚 <strong>Academic subjects:</strong> Math, Science, History, Literature<br>
+                    ✍️ <strong>Writing help:</strong> Essays, reports, grammar<br>
+                    🎯 <strong>Study techniques:</strong> Memory tips, exam preparation<br>
+                    💪 <strong>Motivation:</strong> Stress management, goal setting<br><br>
+                    Try asking me something like:<br>
+                    • "How do I solve quadratic equations?"<br>
+                    • "Explain photosynthesis"<br>
+                    • "Help me write a good essay"<br>
+                    • "I'm stressed about exams"<br><br>
+                    What would you like to learn about today? 😊`;
+        }
+    </script>
+</body>
+</html>
