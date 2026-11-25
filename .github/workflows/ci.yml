@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: edulearn
+          POSTGRES_PASSWORD: edulearn
+          POSTGRES_DB: edulearn_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U edulearn" --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+        env:
+          TEST_DATABASE_URL: postgres://edulearn:edulearn@localhost:5432/edulearn_test
+      - run: npm run build

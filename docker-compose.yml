@@ -1,0 +1,36 @@
+# One command to run EduLearn with PostgreSQL:  docker compose up --build
+# Then seed demo data (optional):              docker compose exec app node server/dist/db/cli.js seed
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: edulearn
+      POSTGRES_PASSWORD: edulearn
+      POSTGRES_DB: edulearn
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edulearn"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://edulearn:edulearn@db:5432/edulearn
+      # Change this before deploying anywhere real.
+      JWT_SECRET: ${JWT_SECRET:-replace-this-with-a-long-random-secret-string-0123456789}
+      SCHOOL_NAME: ${SCHOOL_NAME:-EduLearn Academy}
+      CURRENCY: ${CURRENCY:-USD}
+    ports:
+      - "4000:4000"
+
+volumes:
+  pgdata:

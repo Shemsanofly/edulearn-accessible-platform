@@ -110,3 +110,6 @@ typings/
 # Temporary files
 temp/
 tmp/
+# Build output
+dist/
+**/dist/
