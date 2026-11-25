@@ -225,7 +225,7 @@ table { border-collapse: collapse; width: 100%; }
 .content { padding: 28px; width: 100%; max-width: 1360px; margin: 0 auto; flex: 1; }
 .content:focus { outline: none; }
 
-.menu-toggle { display: none; }
+.btn.menu-toggle { display: none; }
 .sidebar-backdrop { display: none; }
 
 @media (max-width: 1024px) {
@@ -236,12 +236,13 @@ table { border-collapse: collapse; width: 100%; }
   }
   .sidebar.open { transform: translateX(0); }
   .sidebar-backdrop.open { display: block; position: fixed; inset: 0; z-index: 50; background: var(--overlay); }
-  .menu-toggle { display: inline-flex; }
+  .btn.menu-toggle { display: inline-flex; }
   .topbar { padding: 0 16px; }
   .content { padding: 20px 16px; }
 }
 @media (max-width: 640px) {
-  .topbar-search .kbd, .topbar-search span.hint { display: none; }
+  .topbar-search .kbd, .topbar-search span.hint, .user-label { display: none; }
+  .topbar { gap: 6px; }
   h1 { font-size: 1.35rem; }
 }
 

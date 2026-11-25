@@ -337,7 +337,7 @@ function CourseGradebook({ courseId }: { courseId: number }) {
           </div>
         )}
         {!readOnly && assessments.length > 0 && rows.length > 0 && (
-          <div className="card-footer" style={{ position: 'sticky', bottom: 0, background: 'var(--surface)', borderRadius: '0 0 12px 12px', flexWrap: 'wrap' }}>
+          <div className="card-footer" style={{ position: 'sticky', bottom: 0, zIndex: 3, background: 'var(--surface)', borderRadius: '0 0 12px 12px', flexWrap: 'wrap' }}>
             <span className="small muted" aria-live="polite">
               {dirtyKeys.length === 0 ? 'All scores saved. Leave a cell empty to clear a score.' : (
                 <>

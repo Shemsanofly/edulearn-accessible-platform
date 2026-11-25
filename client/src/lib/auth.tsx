@@ -43,9 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear();
     });
     api
-      .get<{ user: SessionUser; school: School }>('/auth/me')
+      .get<{ user: SessionUser | null; school: School }>('/auth/me')
       .then((res) => {
-        setUser(res.user);
+        if (res.user) setUser(res.user);
         setSchool(res.school);
         setCurrency(res.school.currency);
       })

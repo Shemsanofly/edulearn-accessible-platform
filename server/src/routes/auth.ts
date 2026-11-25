@@ -7,7 +7,7 @@ import { query, queryOne } from '../db/pool.js';
 import { HttpError, parse } from '../lib/http.js';
 import { hashPassword, verifyPassword } from '../lib/passwords.js';
 import { email, password } from '../lib/validators.js';
-import { clearSession, issueSession, me, requireAuth, SESSION_USER_SQL } from '../middleware/auth.js';
+import { clearSession, issueSession, me, requireAuth, SESSION_COOKIE, SESSION_USER_SQL } from '../middleware/auth.js';
 
 export const authRouter = Router();
 
@@ -41,8 +41,20 @@ authRouter.post('/logout', (_req, res) => {
   res.status(204).end();
 });
 
-authRouter.get('/me', requireAuth, (req, res) => {
-  res.json({ user: me(req), school: { name: config.schoolName, currency: config.currency } });
+/** Returns `user: null` instead of 401 when signed out, so the app can check quietly on load. */
+authRouter.get('/me', async (req, res) => {
+  const school = { name: config.schoolName, currency: config.currency };
+  if (!req.cookies?.[SESSION_COOKIE]) {
+    res.json({ user: null, school });
+    return;
+  }
+  try {
+    await requireAuth(req, res, () => {});
+    res.json({ user: me(req), school });
+  } catch {
+    clearSession(res);
+    res.json({ user: null, school });
+  }
 });
 
 authRouter.get('/notifications', requireAuth, async (req, res) => {

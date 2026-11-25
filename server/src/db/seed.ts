@@ -200,8 +200,8 @@ export async function seed({ quiet = false }: { quiet?: boolean } = {}) {
     for (let ci = 0; ci < classIds.length; ci++) {
       for (let day = 1; day <= 5; day++) {
         for (let p = 0; p < PERIODS.length; p++) {
-          const k = (day - 1) * PERIODS.length + p;
-          const si = (k + ci) % SUBJECTS.length;
+          // Shift by two periods each day so the week varies; classes stay distinct at every period.
+          const si = (p + ci + 2 * (day - 1)) % SUBJECTS.length;
           slotRows.push([courseIds[ci][si], day, PERIODS[p][0], PERIODS[p][1]]);
         }
       }

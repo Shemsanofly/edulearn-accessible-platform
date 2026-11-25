@@ -111,7 +111,7 @@ export function Layout() {
             <div style={{ position: 'relative' }}>
               <button type="button" className="btn btn-ghost" style={{ paddingLeft: 6, gap: 10 }} aria-haspopup="menu" aria-expanded={menu === 'user'} onClick={() => setMenu(menu === 'user' ? null : 'user')}>
                 <Avatar name={fullName(user)} size="sm" color={role.color} />
-                <span className="small" style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                <span className="small user-label" style={{ textAlign: 'left', lineHeight: 1.2 }}>
                   <span className="bold" style={{ display: 'block', color: 'var(--text)' }}>{user.firstName}</span>
                   <span className="tiny muted">{role.label}</span>
                 </span>

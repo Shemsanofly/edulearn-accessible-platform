@@ -43,9 +43,10 @@ function AdminFees() {
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<number | null>(null);
   const creating = params.get('new') === '1';
+  const studentId = params.get('studentId');
   const debounced = useDebounced(search);
 
-  useEffect(() => setPage(1), [status, classId, debounced]);
+  useEffect(() => setPage(1), [status, classId, debounced, studentId]);
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);
@@ -57,9 +58,10 @@ function AdminFees() {
   const summary = useQuery({ queryKey: ['fees', 'summary'], queryFn: () => api.get<FeeSummary>('/fees/summary') });
   const classes = useQuery({ queryKey: ['classes', 'all'], queryFn: () => api.get<ClassListItem[]>('/classes') });
   const list = useQuery({
-    queryKey: ['fees', 'invoices', { status, classId, search: debounced, page }],
+    queryKey: ['fees', 'invoices', { status, classId, search: debounced, page, studentId }],
     queryFn: () =>
       api.get<Paginated<Invoice>>('/fees/invoices', {
+        studentId: studentId || undefined,
         status: status === 'all' ? undefined : status,
         classId: classId || undefined,
         search: debounced,
@@ -105,6 +107,12 @@ function AdminFees() {
             {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </Select>
           <SearchInput value={search} onChange={setSearch} placeholder="Student, admission no. or invoice" label="Search invoices" />
+          {studentId && (
+            <span className="chip">
+              {list.data?.items[0]?.studentName ? `Only ${list.data.items[0].studentName}` : 'One student only'}
+              <button type="button" className="btn btn-ghost btn-sm" style={{ height: 22, padding: '0 6px' }} onClick={() => setParam('studentId', null)} aria-label="Show all students">✕</button>
+            </span>
+          )}
         </div>
 
         {list.isLoading ? (
