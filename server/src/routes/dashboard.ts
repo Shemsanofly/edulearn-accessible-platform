@@ -20,7 +20,7 @@ dashboardRouter.get('/dashboard', async (req, res) => {
   const [events, announcements] = await Promise.all([upcomingEvents(), visibleAnnouncements(user, 5)]);
 
   if (user.role === 'admin') {
-    const [counts, today, trend, enrollment, fees] = await Promise.all([
+    const [counts, today, trend, enrollment, fees, setup] = await Promise.all([
       queryOne<AdminDashboard['counts']>(
         `SELECT (SELECT COUNT(*)::int FROM students s JOIN users u ON u.id = s.user_id WHERE u.is_active) AS students,
                 (SELECT COUNT(*)::int FROM teachers t JOIN users u ON u.id = t.user_id WHERE u.is_active) AS teachers,
@@ -56,10 +56,16 @@ dashboardRouter.get('/dashboard', async (req, res) => {
                 COALESCE(SUM(balance) FILTER (WHERE status = 'overdue'), 0) AS overdue_amount
            FROM invoice_balances`,
       ),
+      queryOne<AdminDashboard['setup']>(
+        `SELECT (SELECT COUNT(*)::int FROM terms) AS terms,
+                (SELECT COUNT(*)::int FROM subjects) AS subjects,
+                (SELECT COUNT(*)::int FROM class_subjects) AS courses,
+                (SELECT COUNT(*)::int FROM timetable_slots) AS lessons`,
+      ),
     ]);
     const dashboard: AdminDashboard = {
       role: 'admin', counts: counts!, attendanceToday: today!, attendanceTrend: trend, enrollmentByGrade: enrollment,
-      fees: fees!, upcomingEvents: events, announcements,
+      fees: fees!, setup: setup!, upcomingEvents: events, announcements,
     };
     res.json(dashboard);
     return;

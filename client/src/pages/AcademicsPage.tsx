@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, CalendarRange, CheckCircle2, Pencil, Plus, Trash } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Subject, Term } from '../../../shared/types';
 import { Modal, useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
@@ -14,7 +15,9 @@ import { apiFieldErrors } from './StudentsPage';
 type TabId = 'subjects' | 'terms';
 
 export function AcademicsPage() {
-  const [tab, setTab] = useState<TabId>('subjects');
+  const [params, setParams] = useSearchParams();
+  const tab: TabId = params.get('tab') === 'terms' ? 'terms' : 'subjects';
+  const setTab = (t: TabId) => setParams(t === 'subjects' ? {} : { tab: t }, { replace: true });
   return (
     <>
       <PageHeader title="Subjects & terms" description="The building blocks of your curriculum and school year." />

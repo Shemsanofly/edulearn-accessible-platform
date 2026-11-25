@@ -10,6 +10,9 @@ Built with **TypeScript** end to end and **PostgreSQL** for storage.
 | **Database** | PostgreSQL 14+ (plain SQL migrations, no ORM) |
 | **Tests** | Vitest + Supertest integration tests against a real database |
 
+> The whole application is TypeScript. The `legacy/` folder holds the original HTML prototype for reference
+> only; `.gitattributes` excludes it from GitHub's language statistics.
+
 ## What it does
 
 **Administrators**
@@ -34,8 +37,11 @@ Built with **TypeScript** end to end and **PostgreSQL** for storage.
 - Full progress view per child and direct messaging with their teachers
 
 **For everyone**
-- `Ctrl/⌘ + K` command palette to jump anywhere or find a person or class
-- Accessibility menu: text size, dark mode, high contrast, a highly-legible font (Atkinson Hyperlegible) and reduced motion — saved to the user's account
+- Six colour themes (Indigo, Ocean, Forest, Sunset, Grape, Rose), each with a dark mode — everyone picks their own
+- `Ctrl/⌘ + K` command palette to jump anywhere or find a person or class; press `?` for all keyboard shortcuts
+- Display & accessibility menu: colour theme, light/dark/auto, text size, high contrast, a highly-legible font (Atkinson Hyperlegible) and reduced motion — saved to the user's account
+- A "Let's get your school set up" checklist guides a new administrator step by step
+- On phones, a bottom tab bar keeps the most-used pages one tap away
 - Keyboard navigable, skip link, labelled controls, focus-trapped dialogs, screen-reader announcements
 - Responsive layout that works on phones
 
