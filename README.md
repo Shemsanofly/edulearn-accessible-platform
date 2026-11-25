@@ -1,214 +1,170 @@
-# 🎓 EduLearn - Revolutionary Accessible Educational Platform
+# 🎓 EduLearn — School Management System
 
-![EduLearn Logo](https://img.shields.io/badge/EduLearn-Educational%20Platform-blue?style=for-the-badge&logo=education)
-![Accessibility](https://img.shields.io/badge/Accessibility-AAA%20Compliant-green?style=for-the-badge&logo=accessibility)
-![Sign Language](https://img.shields.io/badge/Sign%20Language-AI%20Powered-purple?style=for-the-badge&logo=hands)
+An accessible, full-stack school management system for **administrators, teachers, students and parents**.
+Built with **TypeScript** end to end and **PostgreSQL** for storage.
 
-## 🌟 Overview
+| | |
+|---|---|
+| **Frontend** | React 19 · Vite · TanStack Query · React Router · lucide icons |
+| **Backend** | Node.js · Express 5 · zod validation · JWT sessions in httpOnly cookies |
+| **Database** | PostgreSQL 14+ (plain SQL migrations, no ORM) |
+| **Tests** | Vitest + Supertest integration tests against a real database |
 
-**EduLearn** is a cutting-edge educational platform designed with **accessibility-first principles**. It features revolutionary AI-powered sign language support, making education truly inclusive for students with disabilities. This platform supports students, teachers, and parents with comprehensive learning management and unprecedented accessibility features.
+## What it does
 
-## 🚀 Revolutionary Features
+**Administrators**
+- Dashboard with live attendance, fee collection, enrolment and alerts for missing registers
+- Enrol and manage students, teachers and parents (temporary passwords generated automatically, reset in one click)
+- Classes, subjects, terms and course assignments (which teacher teaches what)
+- Timetable builder that **refuses clashes** — a class, teacher or room can't be double-booked
+- Fees: bill a whole class in one go, record part-payments, see overdue balances
+- School-wide announcements and calendar
 
-### 🤟 **World-Class Accessibility**
-- **🎤 Voice-to-Sign Converter**: Real-time speech recognition that converts spoken words into sign language
-- **📹 Camera Sign Recognition**: AI-powered camera that recognizes hand signs and converts them to text
-- **⠠⠃ Braille Support**: Complete text-to-Braille conversion with tactile device compatibility
-- **🆘 Emergency Signs**: Quick access to essential emergency signs (HELP, HURT, SICK, etc.)
-- **👥 Live Sign Tutor**: AI-powered personal sign language tutors with interactive learning
-- **🔄 Smart Translation**: Multi-language sign support (ASL, BSL, ISL) with cultural context
+**Teachers**
+- Today's lessons at a glance, with one-tap access to the register
+- Attendance register with keyboard shortcuts (P / L / A / E) and history
+- Spreadsheet-style gradebook: create assessments, type scores, see averages, export CSV
+- Message parents and students; post announcements to their classes
 
-### 👨‍🎓 **For Students**
-- **📚 Interactive Learning Modules**: Comprehensive subject coverage with multimedia content
-- **🤖 AI Study Assistant**: Intelligent tutoring system with personalized learning paths
-- **📖 Digital Library**: Extensive collection of educational resources and e-books
-- **📅 Smart Timetable**: Automated schedule management with notifications
-- **🎯 Progress Tracking**: Real-time performance analytics and achievement tracking
-- **🏆 Gamified Learning**: Badges, achievements, and interactive quizzes
+**Students**
+- Personal timetable, upcoming assignments, grades with teacher feedback, attendance record, fees
 
-### 👨‍🏫 **For Teachers**
-- **📊 Comprehensive Dashboard**: Student performance analytics and classroom management
-- **📝 Assignment Management**: Create, distribute, and grade assignments efficiently
-- **👥 Class Management**: Student enrollment, attendance tracking, and communication tools
-- **📈 Performance Analytics**: Detailed insights into student progress and learning patterns
-- **📚 Resource Library**: Curated teaching materials and lesson plans
+**Parents**
+- One card per child with average, attendance, upcoming work and fee balance
+- Full progress view per child and direct messaging with their teachers
 
-### 👨‍👩‍👧 **For Parents**
-- **📱 Parent Portal**: Monitor child's academic progress and performance
-- **📞 Communication Hub**: Direct messaging with teachers and school administration
-- **📊 Progress Reports**: Detailed academic reports and achievement summaries
-- **📅 School Calendar**: Important dates, events, and parent-teacher conferences
-- **💰 Fee Management**: Online payment system and fee tracking
+**For everyone**
+- `Ctrl/⌘ + K` command palette to jump anywhere or find a person or class
+- Accessibility menu: text size, dark mode, high contrast, a highly-legible font (Atkinson Hyperlegible) and reduced motion — saved to the user's account
+- Keyboard navigable, skip link, labelled controls, focus-trapped dialogs, screen-reader announcements
+- Responsive layout that works on phones
 
-## 🎯 **Accessibility Innovation**
+Each person only ever sees what they should: access rules are enforced on the server (e.g. teachers see only
+students they teach, parents only their own children).
 
-### 🌟 **Sign Language AI Chatbot Location & Access**
-- **📍 Location**: Navigate to "AI Support" tab in the student navigation menu
-- **🔐 Access**: Available for students who register with accessibility needs
-- **🎛️ Features**: Complete accessibility toolkit in one centralized location
+## Quick start
 
-### 🎨 **Visual Accessibility**
-- **High Contrast Mode** support for visually impaired users
-- **Reduced Motion** support for users with vestibular disorders
-- **Responsive Design** optimized for all devices and screen sizes
-- **Screen Reader** compatibility with ARIA labels and semantic HTML
+### Option A — Docker (easiest)
 
-## 🛠️ Technology Stack
-
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Styling**: Custom CSS with CSS Grid and Flexbox
-- **Accessibility**: WCAG 2.1 AAA compliant
-- **AI Features**: Web Speech API, MediaDevices API
-- **Icons**: Font Awesome 6
-- **Responsive**: Mobile-first design approach
-
-## 📱 Device Compatibility
-
-- **Desktop**: Windows, macOS, Linux
-- **Mobile**: iOS, Android
-- **Tablets**: iPad, Android tablets
-- **Assistive Devices**: Screen readers, Braille displays, voice control systems
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Camera and microphone (for accessibility features)
-- Internet connection
-
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/edulearn-platform.git
-   ```
-
-2. Navigate to the project directory:
-   ```bash
-   cd edulearn-platform
-   ```
-
-3. Open `student.html` in your web browser:
-   ```bash
-   # On Windows
-   start student.html
-   
-   # On macOS
-   open student.html
-   
-   # On Linux
-   xdg-open student.html
-   ```
-
-### Demo Accounts
-Use these credentials to explore different user roles:
-
-**Student Account:**
-- Email: `student@edulearn.com`
-- Password: `student123`
-
-**Teacher Account:**
-- Email: `teacher@edulearn.com`
-- Password: `teacher123`
-
-**Parent Account:**
-- Email: `parent@edulearn.com`
-- Password: `parent123`
-
-## 🎓 How to Use Accessibility Features
-
-### For Students with Accessibility Needs:
-
-1. **Registration**: Select "Yes, I need sign language support" during registration
-2. **Login**: Use your student credentials
-3. **Dashboard**: See the accessibility status banner with active features
-4. **AI Support**: Click the "AI Support" tab to access all revolutionary features
-5. **Accessibility Guide**: Click "📖 Accessibility Guide" for detailed instructions
-
-### Revolutionary Features Usage:
-
-- **🎤 Voice-to-Sign**: Click "Start Voice Recognition" and speak naturally
-- **📹 Camera Recognition**: Click "Start Camera" and show signs to the camera
-- **⠠⠃ Braille Mode**: Click "Enable Braille Mode" for tactile reading
-- **🆘 Emergency Signs**: Click "Emergency Help" for quick access to essential signs
-- **👥 Live Tutor**: Connect with AI tutors for personalized sign language learning
-
-## 🏗️ Project Structure
-
-```
-edulearn-platform/
-├── student.html              # Main application file
-├── README.md                 # Project documentation
-├── .gitignore               # Git ignore rules
-└── assets/                  # Future assets directory
-    ├── images/             # Image assets
-    ├── icons/              # Icon files
-    └── fonts/              # Custom fonts
+```bash
+docker compose up --build
 ```
 
-## 🌐 Features by User Type
+Then load the demo school (optional):
 
-### Student Features
-- ✅ Interactive Dashboard
-- ✅ Subject Learning Modules
-- ✅ AI Study Assistant (Regular + Sign Language)
-- ✅ Digital Library Access
-- ✅ Smart Timetable
-- ✅ Progress Tracking
-- ✅ Revolutionary Accessibility Features
+```bash
+docker compose exec app node server/dist/db/cli.js seed
+```
 
-### Teacher Features
-- ✅ Teacher Dashboard
-- ✅ Class Management
-- ✅ Assignment Creation
-- ✅ Student Performance Analytics
-- ✅ Resource Library
-- ✅ Communication Tools
+Open http://localhost:4000.
 
-### Parent Features
-- ✅ Parent Portal
-- ✅ Child Progress Monitoring
-- ✅ Teacher Communication
-- ✅ Fee Management
-- ✅ School Calendar Access
+### Option B — Local Node + PostgreSQL
 
-## 🎯 Accessibility Compliance
+Requirements: Node 20+ and PostgreSQL 14+.
 
-- **WCAG 2.1 AAA** compliance
-- **Section 508** compliance
-- **ADA** compliant design
-- **International accessibility standards** adherence
+1. Create a database and user:
 
-## 🔮 Future Enhancements
+   ```bash
+   psql -U postgres -c "CREATE ROLE edulearn LOGIN PASSWORD 'edulearn' CREATEDB;"
+   ```
 
-- [ ] Backend API integration
-- [ ] Real-time notifications
-- [ ] Mobile app development
-- [ ] Advanced AI tutoring
-- [ ] Multilingual support
-- [ ] Offline mode capability
-- [ ] Virtual reality learning modules
-- [ ] Blockchain-based certificates
+   ```bash
+   psql -U postgres -c "CREATE DATABASE edulearn OWNER edulearn;"
+   ```
 
-## 🤝 Contributing
+2. Install and configure:
 
-We welcome contributions to make education more accessible! Please read our contributing guidelines and submit pull requests for improvements.
+   ```bash
+   npm install
+   ```
 
-## 📄 License
+   ```bash
+   cp .env.example .env
+   ```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+3. Create the tables and load the demo school:
 
-## 🙏 Acknowledgments
+   ```bash
+   npm run db:seed
+   ```
 
-- Special thanks to the accessibility community for guidance and feedback
-- Font Awesome for providing excellent icons
-- The open-source community for inspiration and support
+4. Start the API (port 4000) and the web app (port 5173) together:
 
-## 📞 Support
+   ```bash
+   npm run dev
+   ```
 
-For support, email support@edulearn.com or join our community discussions.
+Open http://localhost:5173.
 
----
+### Demo accounts
 
-**Made with ❤️ for inclusive education**
+All demo accounts use the password **`password123`** (or click one on the sign-in page):
 
-*EduLearn - Where every student can learn, regardless of their abilities.*
+| Role | Email | Who |
+|---|---|---|
+| Administrator | `admin@edulearn.school` | Nadia Bello |
+| Teacher | `teacher@edulearn.school` | Sarah Johnson — maths, class teacher of Grade 10A |
+| Student | `student@edulearn.school` | Alex Rivera — Grade 10A |
+| Parent | `parent@edulearn.school` | Maria Rivera — parent of Alex and Sofia |
+
+The demo data (≈120 students, 6 classes, a full timetable, a term of attendance, grades and fees) is generated
+relative to today's date, so it always looks current.
+
+## Using it for a real school
+
+1. Set a strong `JWT_SECRET` (32+ random characters) and `NODE_ENV=production`.
+2. Create only an administrator instead of the demo data:
+
+   ```bash
+   SEED_MODE=admin-only ADMIN_EMAIL=office@yourschool.org ADMIN_PASSWORD='a-strong-password' npm run db:seed
+   ```
+
+3. Sign in, then set up **Subjects & terms → Classes → Teachers → Students → Timetable**.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | API + web app with hot reload |
+| `npm run build` | Production build (client → `client/dist`, server → `server/dist`) |
+| `npm start` | Run the production server (also serves the web app) |
+| `npm run db:migrate` | Apply pending SQL migrations |
+| `npm run db:seed` | Migrate, then load demo data if the database is empty |
+| `npm run db:reset` | ⚠️ Drop everything, migrate and re-seed |
+| `npm test` | Integration tests (uses the `edulearn_test` database, or `TEST_DATABASE_URL`) |
+| `npm run typecheck` | Type-check server and client |
+
+## Project structure
+
+```
+├── shared/types.ts          # API contract shared by server and client
+├── server/
+│   ├── migrations/          # SQL migrations (applied in order, tracked in schema_migrations)
+│   ├── src/
+│   │   ├── routes/          # auth, students, teachers, parents, academics, attendance,
+│   │   │                    # assessments, fees, communication, dashboard
+│   │   ├── lib/access.ts    # who-can-see-what rules
+│   │   ├── db/              # pool, migrator, seed, CLI
+│   │   └── app.ts           # Express app
+│   └── test/                # integration tests
+├── client/src/
+│   ├── pages/               # one file per screen
+│   ├── components/          # layout, UI kit, dialogs, toasts, charts, command palette
+│   ├── lib/                 # API client, auth, formatting, preferences
+│   └── styles/index.css     # design tokens + components (light, dark, high-contrast)
+└── legacy/                  # the original HTML prototype, kept for reference
+```
+
+## Database
+
+Main tables: `users`, `students`, `teachers`, `guardians` (parent ↔ student), `classes`, `subjects`,
+`class_subjects` (a subject taught to a class by a teacher), `timetable_slots`, `terms`, `attendance`,
+`assessments`, `grades`, `invoices`, `payments`, `announcements`, `events`, `messages`.
+The `invoice_balances` view derives paid / part-paid / overdue status. See `server/migrations/001_init.sql`.
+
+To change the schema, add a new numbered file such as `server/migrations/002_add_library.sql`; it runs
+automatically on the next start.
+
+## License
+
+MIT
