@@ -196,7 +196,7 @@ export async function buildOverview(studentId: number): Promise<StudentOverview>
         WHERE cs.class_id = (SELECT class_id FROM students WHERE user_id = $1)
           AND a.due_date >= CURRENT_DATE
           AND NOT EXISTS (SELECT 1 FROM grades g WHERE g.assessment_id = a.id AND g.student_id = $1)
-        ORDER BY a.due_date LIMIT 10`,
+        ORDER BY a.due_date LIMIT 50`,
       [studentId],
     ),
     query<Invoice>(`${INVOICE_SELECT} WHERE ib.student_id = $1 ORDER BY ib.due_date DESC`, [studentId]),
