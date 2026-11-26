@@ -177,7 +177,7 @@ export function Layout() {
                 )}
               >
                 <div className="popover" role="menu" aria-label={t('quickActions')} style={{ left: 0, right: 'auto' }}>
-                  <div className="tiny muted bold" style={{ padding: '6px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('quickActions')}</div>
+                  <div className="popover-label">{t('quickActions')}</div>
                   {quick.map((a) => (
                     <Link key={a.to} role="menuitem" to={a.to} className="menu-item" onClick={closeMenu}>
                       <a.icon size={17} aria-hidden /> {t(a.label)}

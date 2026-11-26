@@ -117,10 +117,10 @@ export function RegisterPage() {
   const { user } = useAuth();
   const [completed, setCompleted] = useState<{ user: SessionUser; schoolName: string } | null>(null);
 
-  if (completed) return <AuthLayout><Completed {...completed} /></AuthLayout>;
-  if (user) return <AuthLayout><AlreadySignedIn user={user} /></AuthLayout>;
+  if (completed) return <AuthLayout story="register"><Completed {...completed} /></AuthLayout>;
+  if (user) return <AuthLayout story="register"><AlreadySignedIn user={user} /></AuthLayout>;
   return (
-    <AuthLayout>
+    <AuthLayout story="register">
       {token ? <InvitationForm key={token} token={token} onDone={setCompleted} /> : <NoToken />}
     </AuthLayout>
   );

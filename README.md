@@ -18,8 +18,9 @@ and phones.
 
 ### Public website
 A landing page (`/home`) with features, how it works, how to get an account, about, and a contact form. Messages are
-saved and appear for administrators under **Enquiries**. Sign-in (`/login`) and account set-up (`/register`) share a
-split layout with a licensed classroom photo (see [Image credits](#image-credits)).
+saved and appear for administrators under **Enquiries**. Sign-in (`/login`), account set-up (`/register`) and
+password help share one layout: a short explanation of the page beside the form, which on phones gives way to the form
+alone. The site uses no photographs or stock imagery.
 
 ### Accounts by invitation
 Nobody can sign up on their own or choose their own role. An administrator opens **Invitations** (or **New → Invite
@@ -190,8 +191,7 @@ In Docker: `docker compose exec app node server/dist/db/cli.js deactivate-demo [
 │   ├── pages/                 # one file per screen, each with its English & Kiswahili text
 │   ├── components/            # layout, UI kit, dialogs, charts, notifications, child switcher
 │   ├── lib/                   # API client, auth, i18n, formatting, export helpers
-│   └── styles/index.css       # design tokens (purple / lavender / white), light & dark, print styles
-├── client/public/images/      # classroom photo crops + CREDITS.md
+│   └── styles/index.css       # design tokens (deep purple, warm neutrals, dark "ink" surfaces), light & dark, print
 └── legacy/                    # the original HTML prototype
 ```
 
@@ -209,14 +209,13 @@ Add a schema change as a new numbered file (e.g. `server/migrations/004_library.
 Upgrading an existing installation only needs a restart: `003_invitations.sql` adds the `invitations` table and changes
 no existing rows.
 
-## Image credits
+## Fonts, icons and images
 
-The classroom photo on the website, sign-in and registration pages is
-[“Students in classroom Tanzania”](https://commons.wikimedia.org/wiki/File:Students_in_classroom_Tanzania.JPG) by
-Seemannaufland (One World Secondary School, Kilimanjaro, 2013), licensed
-[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The crops in `client/public/images/` are adaptations
-shared under the same licence; the credit is shown next to the photo. To use your own school's photo, replace the files
-and update `client/public/images/CREDITS.md` and `PHOTO_CREDIT` in `client/src/components/AuthLayout.tsx`.
+Interface text uses [Manrope](https://fonts.google.com/specimen/Manrope); large website and sign-in headlines use
+[Fraunces](https://fonts.google.com/specimen/Fraunces); the "readable font" setting uses
+[Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible). All three are served by Google Fonts
+under the SIL Open Font License. Icons come from [Lucide](https://lucide.dev) (ISC licence). The project contains no
+third-party photographs; the only image asset is the EduLearn favicon (`client/public/favicon.svg`).
 
 ## License
 

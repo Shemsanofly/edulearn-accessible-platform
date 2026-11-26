@@ -58,7 +58,7 @@ export function ReceiptPage() {
           {school.logoUrl ? (
             <img className="doc-logo" src={school.logoUrl} alt="" />
           ) : (
-            <span className="doc-logo" style={{ display: 'grid', placeItems: 'center', background: '#0f2547', color: '#fff' }} aria-hidden>
+            <span className="doc-logo" style={{ display: 'grid', placeItems: 'center', background: 'var(--doc-ink)', color: '#fff' }} aria-hidden>
               <GraduationCap size={34} />
             </span>
           )}
@@ -69,7 +69,7 @@ export function ReceiptPage() {
               {[school.address, school.phone && `${t('tel')} ${school.phone}`, school.email && `${t('email')} ${school.email}`].filter(Boolean).join(' · ')}
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
+          <div className="doc-title">
             <h2 id="receipt-title" style={{ fontSize: '1.1rem', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('official')}</h2>
             <div className="small muted">Stakabadhi rasmi</div>
             <div className="mono bold" style={{ fontSize: '1.05rem', marginTop: 6 }}>{payment.receiptNo}</div>

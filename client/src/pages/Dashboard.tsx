@@ -11,7 +11,7 @@ import type {
 } from '../../../shared/types';
 import { ColumnChart, Donut, TrendChart } from '../components/charts';
 import {
-  Alert, Avatar, Badge, Button, ButtonLink, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, ProgressBar, StatCard, cx,
+  Alert, Avatar, Badge, Button, ButtonLink, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, ProgressBar, StatCard, StatGroup, cx,
 } from '../components/ui';
 import { api } from '../lib/api';
 import { useSchool, useUser } from '../lib/auth';
@@ -154,15 +154,15 @@ function useTodayLabel() {
   return formatDate(new Date().toISOString().slice(0, 10), { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-/** Greeting banner; its colours follow the person's chosen colour theme. */
+/** Page introduction: today's date as a small label, the greeting, and the role's main actions. */
 function Welcome({ title, subtitle, action }: { title: string; subtitle: string; action?: React.ReactNode }) {
   const today = useTodayLabel();
   return (
     <section className="welcome">
       <div>
+        <p className="chip-light"><CalendarDays size={13} aria-hidden /> {today}</p>
         <h1>{title}</h1>
         <p>{subtitle}</p>
-        <span className="chip-light"><CalendarDays size={14} aria-hidden /> {today}</span>
       </div>
       {action}
     </section>
@@ -324,12 +324,12 @@ function AdminView({ d, name }: { d: AdminDashboard; name: string }) {
         subtitle={t('adminSubtitle', { school: school.name })}
         action={<ButtonLink to="/students?new=1" icon={<GraduationCap size={18} />}>{t('enrol')}</ButtonLink>}
       />
-      <div className="grid grid-4 mb-3">
-        <StatCard icon={<GraduationCap size={22} />} label={t('studentsStat')} value={d.counts.students} hint={t('classesHint', { n: d.counts.classes })} to="/students" />
-        <StatCard icon={<UserRound size={22} />} label={t('teachersStat')} value={d.counts.teachers} tone="accent" hint={t('perTeacher', { n: (d.counts.students / Math.max(1, d.counts.teachers)).toFixed(0) })} to="/teachers" />
-        <StatCard icon={<ClipboardCheck size={22} />} label={t('attendanceToday')} value={percent(att.rate, 1)} tone={attendanceTone(att.rate)} hint={t('absentLate', { absent: att.absent, late: att.late })} to="/attendance" />
-        <StatCard icon={<Wallet size={22} />} label={t('feesOutstanding')} value={money(d.fees.outstanding)} tone={d.fees.overdueCount ? 'warning' : 'success'} hint={t('overdueInvoices', { n: d.fees.overdueCount })} to="/fees?status=overdue" />
-      </div>
+      <StatGroup className="mb-3">
+        <StatCard icon={<GraduationCap size={16} />} label={t('studentsStat')} value={d.counts.students} hint={t('classesHint', { n: d.counts.classes })} to="/students" />
+        <StatCard icon={<UserRound size={16} />} label={t('teachersStat')} value={d.counts.teachers} tone="accent" hint={t('perTeacher', { n: (d.counts.students / Math.max(1, d.counts.teachers)).toFixed(0) })} to="/teachers" />
+        <StatCard icon={<ClipboardCheck size={16} />} label={t('attendanceToday')} value={percent(att.rate, 1)} tone={attendanceTone(att.rate)} hint={t('absentLate', { absent: att.absent, late: att.late })} to="/attendance" />
+        <StatCard icon={<Wallet size={16} />} label={t('feesOutstanding')} value={money(d.fees.outstanding)} tone={d.fees.overdueCount ? 'warning' : 'success'} hint={t('overdueInvoices', { n: d.fees.overdueCount })} to="/fees?status=overdue" />
+      </StatGroup>
 
       <SetupChecklist d={d} />
 
@@ -539,19 +539,19 @@ function TeacherView({ d, name }: { d: TeacherDashboard; name: string }) {
           <ButtonLink to={`/attendance?classId=${d.homeroom.classId}`} icon={<ClipboardCheck size={18} />}>{t('takeRegister', { cls: d.homeroom.className })}</ButtonLink>
         ) : undefined}
       />
-      <div className="grid grid-4 mb-3">
-        <StatCard icon={<BookOpen size={22} />} label={t('courses')} value={d.courses.length} hint={t('studentPlaces', { n: studentTotal })} to="/my-classes" />
-        <StatCard icon={<NotebookPen size={22} />} label={t('scoresToEnter')} value={toGradeCount} tone={toGradeCount ? 'warning' : 'success'} hint={t('nAssessments', { n: d.toGrade.length })} to="/gradebook" />
-        <StatCard icon={<School size={22} />} label={t('classTeacherOf')} value={d.homeroom?.className ?? '—'} tone="accent" hint={d.homeroom ? t('nStudents', { n: d.homeroom.studentCount }) : t('noHomeroom')} to={d.homeroom ? `/classes/${d.homeroom.classId}` : undefined} />
+      <StatGroup className="mb-3">
+        <StatCard icon={<BookOpen size={16} />} label={t('courses')} value={d.courses.length} hint={t('studentPlaces', { n: studentTotal })} to="/my-classes" />
+        <StatCard icon={<NotebookPen size={16} />} label={t('scoresToEnter')} value={toGradeCount} tone={toGradeCount ? 'warning' : 'success'} hint={t('nAssessments', { n: d.toGrade.length })} to="/gradebook" />
+        <StatCard icon={<School size={16} />} label={t('classTeacherOf')} value={d.homeroom?.className ?? '—'} tone="accent" hint={d.homeroom ? t('nStudents', { n: d.homeroom.studentCount }) : t('noHomeroom')} to={d.homeroom ? `/classes/${d.homeroom.classId}` : undefined} />
         <StatCard
-          icon={<ClipboardCheck size={22} />}
+          icon={<ClipboardCheck size={16} />}
           label={t('todaysRegisterStat')}
           value={d.homeroom ? (d.homeroom.attendanceTaken ? t('registerDone') : t('registerTodo')) : '—'}
           tone={d.homeroom?.attendanceTaken ? 'success' : 'warning'}
           hint={d.homeroom?.className}
           to={d.homeroom ? `/attendance?classId=${d.homeroom.classId}` : '/attendance'}
         />
-      </div>
+      </StatGroup>
       <div className="grid grid-main">
         <div className="stack" style={{ gap: 20 }}>
           <TodaySchedule slots={d.today} perspective="teacher" />
@@ -600,12 +600,12 @@ function StudentView({ d, name }: { d: StudentDashboard; name: string }) {
           </Alert>
         </div>
       )}
-      <div className="grid grid-4 mb-3">
-        <StatCard icon={<NotebookPen size={22} />} label={t('overallAverage')} value={percent(o.overallAverage, 1)} tone={gradeTone(o.overallAverage)} hint={t('gradeX', { grade: letterGrade(o.overallAverage) })} to="/progress" />
-        <StatCard icon={<ClipboardCheck size={22} />} label={tc('attendance')} value={percent(o.attendance.rate, 1)} tone={attendanceTone(o.attendance.rate)} hint={o.attendance.absent === 1 ? t('absenceTerm') : t('absencesTerm', { n: o.attendance.absent })} to="/progress?tab=attendance" />
-        <StatCard icon={<BookOpen size={22} />} label={t('dueSoon')} value={o.upcoming.length} tone="accent" hint={t('assignmentsTests')} to="/assignments" />
-        <StatCard icon={<Wallet size={22} />} label={t('feeBalance')} value={money(o.feeBalance)} tone={o.feeBalance > 0 ? 'warning' : 'success'} hint={o.feeBalance > 0 ? t('outstanding') : t('allPaid')} to="/fees" />
-      </div>
+      <StatGroup className="mb-3">
+        <StatCard icon={<NotebookPen size={16} />} label={t('overallAverage')} value={percent(o.overallAverage, 1)} tone={gradeTone(o.overallAverage)} hint={t('gradeX', { grade: letterGrade(o.overallAverage) })} to="/progress" />
+        <StatCard icon={<ClipboardCheck size={16} />} label={tc('attendance')} value={percent(o.attendance.rate, 1)} tone={attendanceTone(o.attendance.rate)} hint={o.attendance.absent === 1 ? t('absenceTerm') : t('absencesTerm', { n: o.attendance.absent })} to="/progress?tab=attendance" />
+        <StatCard icon={<BookOpen size={16} />} label={t('dueSoon')} value={o.upcoming.length} tone="accent" hint={t('assignmentsTests')} to="/assignments" />
+        <StatCard icon={<Wallet size={16} />} label={t('feeBalance')} value={money(o.feeBalance)} tone={o.feeBalance > 0 ? 'warning' : 'success'} hint={o.feeBalance > 0 ? t('outstanding') : t('allPaid')} to="/fees" />
+      </StatGroup>
       <div className="grid grid-main">
         <div className="stack" style={{ gap: 20 }}>
           <TodaySchedule slots={d.today} perspective="student" />

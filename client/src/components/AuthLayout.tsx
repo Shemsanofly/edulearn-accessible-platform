@@ -1,132 +1,222 @@
-import { GraduationCap } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { useSchool } from '../lib/auth';
+import { BellRing, ClipboardCheck, GraduationCap, KeyRound, LockKeyhole, MailCheck, Menu, ShieldCheck, Wallet, X, type LucideIcon } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useAuth, useSchool } from '../lib/auth';
 import { LanguageSwitch, useI18n, useT } from '../lib/i18n';
-
-/**
- * The classroom photo used on the sign-in, registration and public pages.
- * Licence: CC BY-SA 4.0 — the credit must stay visible next to the photo. See public/images/CREDITS.md.
- */
-export const PHOTO_CREDIT = {
-  title: 'Students in classroom Tanzania',
-  author: 'Seemannaufland',
-  source: 'https://commons.wikimedia.org/wiki/File:Students_in_classroom_Tanzania.JPG',
-  license: 'CC BY-SA 4.0',
-  licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-};
+import { Button } from './ui';
 
 const M = {
   en: {
-    home: 'Home',
-    photoAlt: 'Secondary school students in uniform sitting at their desks in a Tanzanian classroom.',
-    photoBy: 'Photo: “{title}” by {author}, {license}, cropped.',
+    home: 'Home', features: 'Features', how: 'How it works', access: 'Getting access', contact: 'Contact',
+    goDashboard: 'Go to dashboard', openMenu: 'Open menu', closeMenu: 'Close menu', siteNav: 'Site',
+    footerTag: 'School management for administrators, teachers, parents and students in Zanzibar and Tanzania.',
+    explore: 'Explore', account: 'Account', reach: 'Contact the school', forgot: 'Forgot password', rights: 'All rights reserved.',
+    // Story panels beside the forms
+    signinEyebrow: 'Welcome back', signinTitle: 'Your school day,', signinTitleEm: 'in one place.',
+    signinText: 'Sign in to see what needs your attention today.',
+    signin1: 'Registers, marks and report cards for your classes',
+    signin2: 'Results, attendance and fees for your children',
+    signin3: 'Announcements and messages from the school office',
+    registerEyebrow: 'By invitation', registerTitle: 'Join your school', registerTitleEm: 'with the right access.',
+    registerText: 'The school office invites each parent, student and member of staff. Your role is set by the invitation.',
+    register1: 'Open the link from your invitation',
+    register2: 'Check your details and choose a password',
+    register3: 'Sign in any time, on any phone or computer',
+    passwordEyebrow: 'Account help', passwordTitle: 'Get back into', passwordTitleEm: 'your account.',
+    passwordText: 'Reset links work once and expire after 30 minutes.',
+    password1: 'We send a reset link to the email you sign in with',
+    password2: 'Without email, the school office can help you',
+    password3: 'Changing your password signs you out on other devices',
   },
   sw: {
-    home: 'Mwanzo',
-    photoAlt: 'Wanafunzi wa sekondari waliovaa sare wakiwa wamekaa kwenye madawati darasani Tanzania.',
-    photoBy: 'Picha: “{title}” na {author}, {license}, imekatwa.',
+    home: 'Mwanzo', features: 'Huduma', how: 'Jinsi inavyofanya kazi', access: 'Kupata akaunti', contact: 'Mawasiliano',
+    goDashboard: 'Nenda kwenye dashibodi', openMenu: 'Fungua menyu', closeMenu: 'Funga menyu', siteNav: 'Tovuti',
+    footerTag: 'Usimamizi wa shule kwa wasimamizi, walimu, wazazi na wanafunzi Zanzibar na Tanzania.',
+    explore: 'Gundua', account: 'Akaunti', reach: 'Wasiliana na shule', forgot: 'Umesahau nenosiri', rights: 'Haki zote zimehifadhiwa.',
+    signinEyebrow: 'Karibu tena', signinTitle: 'Siku yako ya shule,', signinTitleEm: 'mahali pamoja.',
+    signinText: 'Ingia uone mambo yanayohitaji umakini wako leo.',
+    signin1: 'Mahudhurio, alama na ripoti za madarasa yako',
+    signin2: 'Matokeo, mahudhurio na ada za watoto wako',
+    signin3: 'Matangazo na ujumbe kutoka ofisi ya shule',
+    registerEyebrow: 'Kwa mwaliko', registerTitle: 'Jiunge na shule yako', registerTitleEm: 'ukiwa na ruhusa sahihi.',
+    registerText: 'Ofisi ya shule humwalika kila mzazi, mwanafunzi na mfanyakazi. Nafasi yako imewekwa na mwaliko.',
+    register1: 'Fungua kiungo kilicho kwenye mwaliko wako',
+    register2: 'Hakiki taarifa zako na uchague nenosiri',
+    register3: 'Ingia wakati wowote, kwa simu au kompyuta',
+    passwordEyebrow: 'Msaada wa akaunti', passwordTitle: 'Rudi kwenye', passwordTitleEm: 'akaunti yako.',
+    passwordText: 'Viungo vya kubadili nenosiri vinatumika mara moja na huisha baada ya dakika 30.',
+    password1: 'Tunatuma kiungo kwa barua pepe unayoingia nayo',
+    password2: 'Bila barua pepe, ofisi ya shule itakusaidia',
+    password3: 'Kubadili nenosiri kunakutoa kwenye vifaa vingine',
   },
 };
+type Key = keyof typeof M.en;
 
-/** Public header used on the website, sign-in and registration pages. */
-export function SiteHeader({ children }: { children?: ReactNode }) {
+export type AuthStory = 'signin' | 'register' | 'password';
+const STORIES: Record<AuthStory, { icons: [LucideIcon, LucideIcon, LucideIcon] }> = {
+  signin: { icons: [ClipboardCheck, Wallet, BellRing] },
+  register: { icons: [MailCheck, KeyRound, ShieldCheck] },
+  password: { icons: [MailCheck, ShieldCheck, LockKeyhole] },
+};
+
+export function BrandMark({ to = '/home' }: { to?: string }) {
   const school = useSchool();
+  return (
+    <Link to={to} className="brand">
+      <span className="brand-logo">{school.logoUrl ? <img src={school.logoUrl} alt="" /> : <GraduationCap size={19} aria-hidden />}</span>
+      <span style={{ minWidth: 0 }}>
+        <span className="brand-name truncate" style={{ display: 'block' }}>{school.name}</span>
+        <span className="brand-sub" style={{ display: 'block' }}>EduLearn</span>
+      </span>
+    </Link>
+  );
+}
+
+export interface SiteLink { id: string; label: string }
+
+/**
+ * Floating site header. On the website the links scroll to sections (onSection); on other public pages they
+ * go to the website's sections.
+ */
+export function SiteHeader({ links, onSection }: { links?: SiteLink[]; onSection?: (id: string) => (e: React.MouseEvent) => void }) {
   const { t: tc } = useI18n();
   const t = useT(M);
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+  const burger = useRef<HTMLButtonElement>(null);
+  const items: SiteLink[] = links ?? [
+    { id: 'features', label: t('features') }, { id: 'how', label: t('how') }, { id: 'access', label: t('access') }, { id: 'contact', label: t('contact') },
+  ];
+
+  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setOpen(false); burger.current?.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  const link = (l: SiteLink) => (
+    <a key={l.id} href={`/home#${l.id}`} onClick={onSection ? (e) => { setOpen(false); onSection(l.id)(e); } : undefined}>{l.label}</a>
+  );
+
   return (
     <header className="site-header">
       <div className="site-header-inner">
-        <Link to="/home" className="brand" style={{ padding: 0 }}>
-          <span className="brand-logo">{school.logoUrl ? <img src={school.logoUrl} alt="" /> : <GraduationCap size={20} aria-hidden />}</span>
-          <span style={{ minWidth: 0 }}>
-            <span className="brand-name truncate" style={{ display: 'block', maxWidth: '40vw' }}>{school.name}</span>
-            <span className="brand-sub" style={{ display: 'block' }}>EduLearn</span>
-          </span>
-        </Link>
-        <nav className="site-nav" aria-label="Site">
-          {children ?? (
+        <BrandMark />
+        <nav className="site-links" aria-label={t('siteNav')}>{items.map(link)}</nav>
+        <div className="site-actions">
+          <span className="site-hide-sm"><LanguageSwitch compact /></span>
+          {user ? (
+            <Link to="/" className="btn btn-sm btn-ink">{t('goDashboard')}</Link>
+          ) : (
             <>
-              <NavLink to="/home" className="nav-pill optional">{t('home')}</NavLink>
-              <NavLink to="/login" className="nav-pill">{tc('signIn')}</NavLink>
-              <NavLink to="/register" className="nav-pill optional">{tc('createAccount')}</NavLink>
+              {pathname !== '/login' && <NavLink to="/login" className="btn btn-sm btn-ghost site-hide-sm">{tc('signIn')}</NavLink>}
+              <Link to={pathname === '/register' ? '/login' : '/register'} className="btn btn-sm btn-ink">
+                {pathname === '/register' ? tc('signIn') : tc('createAccount')}
+              </Link>
             </>
           )}
-          <LanguageSwitch compact />
-        </nav>
+          <Button
+            ref={burger}
+            variant="ghost"
+            iconOnly
+            className="site-burger"
+            aria-label={open ? t('closeMenu') : t('openMenu')}
+            aria-expanded={open}
+            aria-controls="site-menu"
+            onClick={() => setOpen((o) => !o)}
+            icon={open ? <X size={20} /> : <Menu size={20} />}
+          />
+        </div>
       </div>
+      <nav id="site-menu" className={`site-menu${open ? ' open' : ''}`} aria-label={t('siteNav')} hidden={!open}>
+        {items.map(link)}
+        {!user && <Link to="/login">{tc('signIn')}</Link>}
+        <div className="row"><LanguageSwitch /></div>
+      </nav>
     </header>
   );
 }
 
-/** The licensed classroom photo with its credit. Falls back to a plain tinted panel if it can't load. */
-export function ClassroomPhoto({ variant = 'portrait', className }: { variant?: 'portrait' | 'wide'; className?: string }) {
+/** Dark footer shared by the website and the sign-in pages. */
+export function PublicFooter({ onSection }: { onSection?: (id: string) => (e: React.MouseEvent) => void }) {
+  const school = useSchool();
+  const { t: tc } = useI18n();
   const t = useT(M);
-  const [failed, setFailed] = useState(false);
-  const sizes = variant === 'portrait' ? [640, 960, 1280] : [960, 1600];
-  const srcset = (ext: string) => sizes.map((w) => `/images/classroom-${variant}-${w}.${ext} ${w}w`).join(', ');
-  const fallback = `/images/classroom-${variant}-${sizes[1]}.jpg`;
-  const sizeHint = variant === 'portrait' ? '(max-width: 1200px) 46vw, 560px' : '(max-width: 960px) 100vw, 640px';
+  const section = (id: string, label: Key) => (
+    <li><a href={`/home#${id}`} onClick={onSection ? onSection(id) : undefined}>{t(label)}</a></li>
+  );
   return (
-    <figure className={className ?? 'auth-photo'}>
-      <div className="frame">
-        {!failed && (
-          <picture>
-            <source type="image/webp" srcSet={srcset('webp')} sizes={sizeHint} />
-            <img
-              src={fallback}
-              srcSet={srcset('jpg')}
-              sizes={sizeHint}
-              alt={t('photoAlt')}
-              decoding="async"
-              loading={variant === 'portrait' ? 'eager' : 'lazy'}
-              onError={() => setFailed(true)}
-            />
-          </picture>
-        )}
+    <footer className="public-footer">
+      <div className="wrap">
+        <div className="footer-grid">
+          <div>
+            <BrandMark />
+            <p>{t('footerTag')}</p>
+          </div>
+          <nav aria-label={t('explore')}>
+            <h2>{t('explore')}</h2>
+            <ul>{section('features', 'features')}{section('how', 'how')}{section('access', 'access')}{section('contact', 'contact')}</ul>
+          </nav>
+          <nav aria-label={t('account')}>
+            <h2>{t('account')}</h2>
+            <ul>
+              <li><Link to="/login">{tc('signIn')}</Link></li>
+              <li><Link to="/register">{tc('createAccount')}</Link></li>
+              <li><Link to="/forgot-password">{t('forgot')}</Link></li>
+            </ul>
+          </nav>
+          <div>
+            <h2>{t('reach')}</h2>
+            <ul>
+              {school.phone && <li><a href={`tel:${school.phone.replace(/\s/g, '')}`}>{school.phone}</a></li>}
+              {school.email && <li><a href={`mailto:${school.email}`}>{school.email}</a></li>}
+              {school.address && <li>{school.address}</li>}
+              {section('contact', 'contact')}
+            </ul>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <span>© {new Date().getFullYear()} {school.name}{school.motto ? ` · ${school.motto}` : ''}. {t('rights')}</span>
+          <LanguageSwitch compact />
+        </div>
       </div>
-      <figcaption>
-        {t('photoBy', { title: PHOTO_CREDIT.title, author: PHOTO_CREDIT.author, license: PHOTO_CREDIT.license })}{' '}
-        <a href={PHOTO_CREDIT.source} target="_blank" rel="noreferrer noopener">Wikimedia Commons</a>
-        {' · '}
-        <a href={PHOTO_CREDIT.licenseUrl} target="_blank" rel="noreferrer noopener">{PHOTO_CREDIT.license}</a>
-      </figcaption>
-    </figure>
+    </footer>
   );
 }
 
 /**
- * Shared layout for sign-in, registration and password pages: a focused form on the left and the
- * classroom photo on the right. On tablets and phones the photo is dropped so the form comes first.
+ * Sign-in, registration and password pages: a dark story panel explaining what the page is for, beside the form.
+ * On tablets and phones the story panel is dropped so the form is the first thing on screen.
  */
-/** True when the screen is wide enough for the photo, so phones never download it. */
-function useWideScreen() {
-  const query = '(min-width: 961px)';
-  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const onChange = () => setWide(mq.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return wide;
-}
-
-export function AuthLayout({ children, photo = true }: { children: ReactNode; photo?: boolean }) {
-  const school = useSchool();
-  const wide = useWideScreen();
+export function AuthLayout({ children, story = 'signin' }: { children: ReactNode; story?: AuthStory }) {
+  const t = useT(M);
+  const [a, b, c] = STORIES[story].icons;
+  const k = (s: string) => `${story}${s}` as Key;
   return (
-    <div className="auth-shell">
+    <div className="public">
       <a href="#auth-main" className="skip-link">Skip to main content</a>
       <SiteHeader />
-      <main id="auth-main" className={photo ? 'auth-main' : 'auth-main single'}>
-        <div className="auth-card">{children}</div>
-        {photo && wide && <ClassroomPhoto />}
+      <main id="auth-main" className="auth-stage">
+        <div className="auth-panel">
+          <aside className="auth-story" aria-label={t(k('Eyebrow'))}>
+            <p className="eyebrow ruled">{t(k('Eyebrow'))}</p>
+            <h2>{t(k('Title'))} <em>{t(k('TitleEm'))}</em></h2>
+            <p>{t(k('Text'))}</p>
+            <ul className="auth-points">
+              {[a, b, c].map((Icon, i) => (
+                <li key={i}><span className="icon" aria-hidden><Icon size={17} /></span>{t(k(String(i + 1)))}</li>
+              ))}
+            </ul>
+          </aside>
+          <div className="auth-form">{children}</div>
+        </div>
       </main>
-      <footer className="site-footer">
-        © {new Date().getFullYear()} {school.name}
-        {school.motto ? ` · ${school.motto}` : ''}
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

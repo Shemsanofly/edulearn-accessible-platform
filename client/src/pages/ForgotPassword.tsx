@@ -104,7 +104,7 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout story="password">
       {sent ? (
         <div role="status">
           <span className="empty-icon" style={{ margin: '0 0 16px', background: 'var(--success-soft)', color: 'var(--success)' }} aria-hidden>
@@ -168,7 +168,7 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <AuthLayout>
+      <AuthLayout story="password">
         <h1>{t('resetTitle')}</h1>
         <div className="mt-2">
           <Alert tone="danger">{t('noToken')}</Alert>
@@ -183,7 +183,7 @@ export function ResetPasswordPage() {
 
   if (done) {
     return (
-      <AuthLayout>
+      <AuthLayout story="password">
         <div role="status">
           <span className="empty-icon" style={{ margin: '0 0 16px', background: 'var(--success-soft)', color: 'var(--success)' }} aria-hidden>
             <CheckCircle2 size={28} />
@@ -197,7 +197,7 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout story="password">
       <h1>{t('resetTitle')}</h1>
       <p className="lede">{t('resetText')}</p>
       <form onSubmit={submit} noValidate className="stack">

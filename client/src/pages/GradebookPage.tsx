@@ -9,7 +9,7 @@ import { Modal, useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
   Alert, Avatar, Badge, Button, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Select,
-  StatCard, Textarea, cx,
+  StatCard, StatGroup, Textarea, cx,
 } from '../components/ui';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { useUser } from '../lib/auth';
@@ -318,12 +318,12 @@ function CourseGradebook({ courseId }: { courseId: number }) {
         </div>
       )}
 
-      <div className="grid grid-4 mb-3">
-        <StatCard icon={<NotebookPen size={22} />} label={t('classAverage')} value={percent(classAvg, 1)} tone={gradeTone(classAvg)} hint={t('grade', { g: letterGrade(classAvg) })} />
-        <StatCard icon={<BookOpen size={22} />} label={t('assessments')} value={assessments.length} tone="accent" />
-        <StatCard icon={<Users size={22} />} label={t('students')} value={rows.length} tone="info" />
-        <StatCard icon={<Pencil size={22} />} label={t('scoresMissing')} value={toGrade} tone={toGrade ? 'warning' : 'success'} hint={toGrade ? t('acrossAll') : t('caughtUp')} />
-      </div>
+      <StatGroup className="mb-3">
+        <StatCard icon={<NotebookPen size={16} />} label={t('classAverage')} value={percent(classAvg, 1)} tone={gradeTone(classAvg)} hint={t('grade', { g: letterGrade(classAvg) })} />
+        <StatCard icon={<BookOpen size={16} />} label={t('assessments')} value={assessments.length} tone="accent" />
+        <StatCard icon={<Users size={16} />} label={t('students')} value={rows.length} tone="info" />
+        <StatCard icon={<Pencil size={16} />} label={t('scoresMissing')} value={toGrade} tone={toGrade ? 'warning' : 'success'} hint={toGrade ? t('acrossAll') : t('caughtUp')} />
+      </StatGroup>
 
       <Card>
         {assessments.length === 0 ? (

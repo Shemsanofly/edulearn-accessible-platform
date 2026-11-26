@@ -175,21 +175,21 @@ export function ReportCardPage() {
       )}
       <article className="document" aria-label={t('heading')}>
         <header className="doc-head">
-          {s.logoUrl ? <img className="doc-logo" src={s.logoUrl} alt="" /> : <span className="doc-logo" style={{ display: 'grid', placeItems: 'center', background: '#0f2547', color: '#fff' }}><GraduationCap size={30} aria-hidden /></span>}
+          {s.logoUrl ? <img className="doc-logo" src={s.logoUrl} alt="" /> : <span className="doc-logo" style={{ display: 'grid', placeItems: 'center', background: 'var(--doc-ink)', color: '#fff' }}><GraduationCap size={30} aria-hidden /></span>}
           <div style={{ flex: 1 }}>
             <h1 style={{ fontSize: '1.4rem' }}>{s.name}</h1>
             {s.motto && <div className="muted" style={{ fontStyle: 'italic' }}>“{s.motto}”</div>}
             {contact && <div className="muted small">{contact}</div>}
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="bold" style={{ color: '#0f2547' }}>{t('heading')}</div>
+          <div className="doc-title">
+            <div className="bold" style={{ color: 'var(--doc-ink)' }}>{t('heading')}</div>
             <div className="muted small">{t('headingSw')}</div>
           </div>
         </header>
 
         <section style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
           <Avatar name={fullName(data.student)} size="lg" photoUrl={data.student.photoUrl} />
-          <dl className="kv" style={{ flex: 1, gridTemplateColumns: 'max-content 1fr max-content 1fr', minWidth: 280 }}>
+          <dl className="kv doc-kv" style={{ flex: 1, minWidth: 0 }}>
             <dt>{t('student')}</dt><dd className="bold">{fullName(data.student)}</dd>
             <dt>{t('admission')}</dt><dd className="mono">{data.student.admissionNo}</dd>
             <dt>{t('class')}</dt><dd>{data.student.className ?? '—'}</dd>

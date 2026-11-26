@@ -10,7 +10,7 @@ import { ChildSwitcher, useChildren } from '../components/ChildSwitcher';
 import { Donut } from '../components/charts';
 import {
   Avatar, Badge, Button, ButtonLink, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, PageHeader, ProgressBar,
-  Select, StatCard, Tabs,
+  Select, StatCard, StatGroup, Tabs,
 } from '../components/ui';
 import { api } from '../lib/api';
 import { useUser } from '../lib/auth';
@@ -258,14 +258,14 @@ function OverviewTab({ data, showFees, goTo }: { data: StudentOverview; showFees
   const t = useT(M);
   return (
     <>
-      <div className="grid grid-4 mb-3">
-        <StatCard icon={<NotebookPen size={22} />} label={t('overall')} value={percent(data.overallAverage, 1)} tone={gradeTone(data.overallAverage)} hint={t('gradeMarked', { grade: letterGrade(data.overallAverage), n: data.grades.length })} />
-        <StatCard icon={<ClipboardCheck size={22} />} label={tc('attendance')} value={percent(data.attendance.rate, 1)} tone={attendanceTone(data.attendance.rate)} hint={t('absentLate', { absent: data.attendance.absent, late: data.attendance.late })} />
-        <StatCard icon={<BookOpen size={22} />} label={t('dueSoon')} value={data.upcoming.length} tone="accent" hint={t('assignmentsTests')} />
+      <StatGroup className="mb-3">
+        <StatCard icon={<NotebookPen size={16} />} label={t('overall')} value={percent(data.overallAverage, 1)} tone={gradeTone(data.overallAverage)} hint={t('gradeMarked', { grade: letterGrade(data.overallAverage), n: data.grades.length })} />
+        <StatCard icon={<ClipboardCheck size={16} />} label={tc('attendance')} value={percent(data.attendance.rate, 1)} tone={attendanceTone(data.attendance.rate)} hint={t('absentLate', { absent: data.attendance.absent, late: data.attendance.late })} />
+        <StatCard icon={<BookOpen size={16} />} label={t('dueSoon')} value={data.upcoming.length} tone="accent" hint={t('assignmentsTests')} />
         {showFees
-          ? <StatCard icon={<Wallet size={22} />} label={t('feeBalance')} value={money(data.feeBalance)} tone={data.feeBalance > 0 ? 'warning' : 'success'} hint={data.feeBalance > 0 ? t('outstanding') : t('allPaid')} />
-          : <StatCard icon={<CalendarDays size={22} />} label={t('daysRecorded')} value={data.attendance.total} tone="info" hint={t('thisTerm')} />}
-      </div>
+          ? <StatCard icon={<Wallet size={16} />} label={t('feeBalance')} value={money(data.feeBalance)} tone={data.feeBalance > 0 ? 'warning' : 'success'} hint={data.feeBalance > 0 ? t('outstanding') : t('allPaid')} />
+          : <StatCard icon={<CalendarDays size={16} />} label={t('daysRecorded')} value={data.attendance.total} tone="info" hint={t('thisTerm')} />}
+      </StatGroup>
       <div className="grid grid-main">
         <Card>
           <CardHeader title={t('subjectAverages')} subtitle={t('acrossMarked')} action={<Button size="sm" variant="ghost" onClick={() => goTo('grades')}>{t('allGrades')}</Button>} />

@@ -7,7 +7,7 @@ import { Modal, useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
   Badge, Button, ButtonLink, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, ProgressBar, Select,
-  StatCard,
+  StatCard, StatGroup,
 } from '../components/ui';
 import { api } from '../lib/api';
 import { useSchool } from '../lib/auth';
@@ -240,11 +240,11 @@ export function ClassesPage() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-3 mb-3">
-            <StatCard icon={<School size={22} />} label={t('statClasses')} value={data.length} hint={t('statLevels', { n: byGrade.length })} />
-            <StatCard icon={<Users size={22} />} label={t('statPlaces')} value={`${totalStudents} / ${totalCapacity}`} tone="accent" hint={t('statCapacity', { pct: Math.round((totalStudents / Math.max(1, totalCapacity)) * 100) })} />
-            <StatCard icon={<UserRound size={22} />} label={t('statNoTeacher')} value={noTeacher} tone={noTeacher ? 'warning' : 'success'} hint={noTeacher ? t('assignOne') : t('allCovered')} />
-          </div>
+          <StatGroup className="mb-3">
+            <StatCard icon={<School size={16} />} label={t('statClasses')} value={data.length} hint={t('statLevels', { n: byGrade.length })} />
+            <StatCard icon={<Users size={16} />} label={t('statPlaces')} value={`${totalStudents} / ${totalCapacity}`} tone="accent" hint={t('statCapacity', { pct: Math.round((totalStudents / Math.max(1, totalCapacity)) * 100) })} />
+            <StatCard icon={<UserRound size={16} />} label={t('statNoTeacher')} value={noTeacher} tone={noTeacher ? 'warning' : 'success'} hint={noTeacher ? t('assignOne') : t('allCovered')} />
+          </StatGroup>
           {byGrade.map(([grade, classes]) => (
             <section key={grade} className="mb-3" aria-labelledby={`grade-${grade}`}>
               <h2 id={`grade-${grade}`} className="mb-2" style={{ fontSize: '1rem' }}>{levelName(grade, school.levelLabel)}</h2>
