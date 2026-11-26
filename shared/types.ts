@@ -573,14 +573,14 @@ export interface SchoolSettings {
   defaultLanguage: Language;
   /** What a class level is called, e.g. "Form" or "Standard". */
   levelLabel: string;
-  isDemo: boolean;
   logoUrl: string | null;
 }
 
-export type SchoolSettingsInput = Partial<Omit<SchoolSettings, 'isDemo' | 'logoUrl'>>;
+export type SchoolSettingsInput = Partial<Omit<SchoolSettings, 'logoUrl'>>;
 
 export interface ContactRequestInput {
-  kind: 'contact' | 'demo';
+  /** Older records may be 'demo'; the website now only sends general enquiries. */
+  kind?: 'contact' | 'demo';
   fullName: string;
   schoolName?: string | null;
   email: string;
@@ -588,7 +588,8 @@ export interface ContactRequestInput {
   message: string;
 }
 
-export interface ContactRequest extends Required<ContactRequestInput> {
+export interface ContactRequest extends Required<Omit<ContactRequestInput, 'kind'>> {
+  kind: 'contact' | 'demo';
   id: number;
   status: 'new' | 'contacted' | 'closed';
   createdAt: string;
@@ -859,4 +860,69 @@ export interface StudentReportRow extends StudentListItem {
   attendanceRate: number | null;
   averagePercent: number | null;
   feeBalance: number;
+}
+
+// ---------------------------------------------------------------------------
+// Invitations & registration
+// ---------------------------------------------------------------------------
+export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
+
+export interface InvitationDetails {
+  classId?: number | null;
+  children?: { studentId: number; relationship: string }[];
+  specialization?: string | null;
+}
+
+export interface Invitation {
+  id: number;
+  email: string;
+  role: Role;
+  firstName: string;
+  lastName: string;
+  details: InvitationDetails;
+  /** Human-readable summary of the details, e.g. "Form 2A" or "Parent of Ali Juma". */
+  detailSummary: string | null;
+  message: string | null;
+  status: InvitationStatus;
+  invitedByName: string | null;
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+}
+
+export interface InvitationInput {
+  email: string;
+  role: Role;
+  firstName: string;
+  lastName: string;
+  details?: InvitationDetails;
+  message?: string | null;
+  /** Days until the link expires (1–30, default 14). */
+  expiresInDays?: number;
+}
+
+/** Returned once when an invitation is created or re-sent: the only time the link is visible. */
+export interface IssuedInvitation {
+  invitation: Invitation;
+  link: string;
+  emailed: boolean;
+}
+
+/** What the registration page may show about an invitation before the account exists. */
+export interface InvitationLookup {
+  email: string;
+  role: Role;
+  firstName: string;
+  lastName: string;
+  schoolName: string;
+  expiresAt: string;
+  detailSummary: string | null;
+}
+
+export interface RegisterInput {
+  token: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  password: string;
 }

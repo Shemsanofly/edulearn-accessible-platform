@@ -8,10 +8,13 @@
     "build": "esbuild src/index.ts src/db/cli.ts --bundle --platform=node --format=esm --packages=external --outdir=dist --target=node20",
     "start": "node --env-file-if-exists=../.env dist/index.js",
     "db:migrate": "tsx --env-file-if-exists=../.env src/db/cli.ts migrate",
-    "db:seed": "tsx --env-file-if-exists=../.env src/db/cli.ts seed",
+    "db:seed": "tsx --env-file-if-exists=../.env src/db/cli.ts setup",
     "db:reset": "tsx --env-file-if-exists=../.env src/db/cli.ts reset",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:setup": "tsx --env-file-if-exists=../.env src/db/cli.ts setup",
+    "db:sample": "tsx --env-file-if-exists=../.env src/db/cli.ts sample",
+    "db:deactivate-demo": "tsx --env-file-if-exists=../.env src/db/cli.ts deactivate-demo"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

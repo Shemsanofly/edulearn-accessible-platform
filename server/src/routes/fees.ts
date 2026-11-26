@@ -6,7 +6,7 @@ import { assertCanViewStudent } from '../lib/access.js';
 import { audit } from '../lib/audit.js';
 import { guardiansOf, notifyUsers } from '../lib/notify.js';
 import { loadSettings } from '../lib/settings.js';
-import { badRequest, conflict, forbidden, intParam, notFound, pageParams, parse, provided } from '../lib/http.js';
+import { badRequest, conflict, forbidden, intParam, notFound, orderBy, pageParams, parse, provided } from '../lib/http.js';
 import { INVOICE_SELECT, PAYMENT_SELECT } from '../lib/sql.js';
 import { id, isoDate, optionalText } from '../lib/validators.js';
 import { me, requireRole } from '../middleware/auth.js';
@@ -60,7 +60,9 @@ feesRouter.get('/invoices', async (req, res) => {
   }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const [items, count] = await Promise.all([
-    query<Invoice>(`${INVOICE_SELECT} ${whereSql} ORDER BY ib.due_date DESC, ib.id DESC LIMIT ${pageSize} OFFSET ${offset}`, params),
+    query<Invoice>(`${INVOICE_SELECT} ${whereSql} ${orderBy(req.query, {
+      student: 'u.last_name', due: 'ib.due_date', amount: 'ib.amount', balance: 'ib.balance', status: 'ib.status', invoice: 'ib.title',
+    }, 'ib.due_date DESC, ib.id DESC', 'ib.id DESC')} LIMIT ${pageSize} OFFSET ${offset}`, params),
     queryOne<{ total: number }>(
       `SELECT COUNT(*)::int AS total FROM invoice_balances ib JOIN students s ON s.user_id = ib.student_id JOIN users u ON u.id = ib.student_id ${whereSql}`,
       params,

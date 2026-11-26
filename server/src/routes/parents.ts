@@ -6,7 +6,7 @@ import { query, queryOne, transaction } from '../db/pool.js';
 import { createUser, updateUser } from '../lib/accounts.js';
 import { audit } from '../lib/audit.js';
 import { phone } from '../lib/phone.js';
-import { intParam, notFound, pageParams, parse, provided } from '../lib/http.js';
+import { intParam, notFound, orderBy, pageParams, parse, provided } from '../lib/http.js';
 import { PHOTO_URL } from '../lib/sql.js';
 import { email, id, name, optionalText, password } from '../lib/validators.js';
 import { requireRole } from '../middleware/auth.js';
@@ -64,7 +64,9 @@ parentsRouter.get('/', async (req, res) => {
        WHERE g.parent_id = u.id AND su.first_name || ' ' || su.last_name ILIKE $1))`;
   }
   const [items, count] = await Promise.all([
-    query<ParentListItem>(`${PARENT_SELECT} ${where} ORDER BY u.last_name, u.first_name LIMIT ${pageSize} OFFSET ${offset}`, params),
+    query<ParentListItem>(`${PARENT_SELECT} ${where} ${orderBy(req.query, {
+      name: 'u.last_name', email: 'u.email', children: '(SELECT COUNT(*) FROM guardians g WHERE g.parent_id = u.id)', status: 'u.is_active',
+    }, 'u.last_name, u.first_name', 'u.last_name, u.first_name')} LIMIT ${pageSize} OFFSET ${offset}`, params),
     queryOne<{ total: number }>(`SELECT COUNT(*)::int AS total FROM users u ${where}`, params),
   ]);
   res.json({ items, total: count?.total ?? 0, page, pageSize });

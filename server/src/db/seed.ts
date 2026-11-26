@@ -4,12 +4,12 @@ import { invalidateSettings } from '../lib/settings.js';
 import { pool, query, queryOne, transaction } from './pool.js';
 
 /**
- * DEMO DATA. Seeds a fictional secondary school in Zanzibar so the platform can be shown to schools.
- * Every person, phone number and payment here is invented, and the school is flagged `is_demo`
- * so the app labels it as a demo. Dates are relative to today so the demo always looks current.
+ * Two ways to fill an empty database:
  *
- * For a real school run with SEED_MODE=admin-only (plus ADMIN_EMAIL / ADMIN_PASSWORD / SCHOOL_NAME)
- * to create just the administrator account.
+ * - `setupSchool()` — normal setup for a real school: creates only the first administrator from
+ *   ADMIN_EMAIL / ADMIN_PASSWORD (and SCHOOL_NAME). Everyone else is invited from inside the app.
+ * - `seedSampleSchool()` — SAMPLE DATA for automated tests and local development only. It creates a
+ *   fictional Zanzibar school with shared, well-known passwords, so it refuses to run in production.
  */
 
 export const DEMO_PASSWORD = 'password123';
@@ -115,7 +115,12 @@ const PSLE = [
 
 const tzPhone = () => `+255 7${Math.floor(between(10, 80))} ${Math.floor(between(100, 999))} ${Math.floor(between(100, 999))}`;
 
-async function seedAdminOnly() {
+export async function setupSchool() {
+  const existing = await queryOne<{ n: number }>('SELECT COUNT(*)::int AS n FROM users');
+  if (existing && existing.n > 0) {
+    console.log('This database already has accounts, so setup was skipped. Invite new people from the app instead.');
+    return;
+  }
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !password || password.length < 8) {
@@ -145,14 +150,16 @@ async function insertScale(db: pg.PoolClient, name: string, description: string,
   return scale!.id;
 }
 
-export async function seed({ quiet = false }: { quiet?: boolean } = {}) {
+export async function seedSampleSchool({ quiet = false }: { quiet?: boolean } = {}) {
   const log = quiet ? () => {} : console.log;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Sample data has shared, well-known passwords and must never be loaded in production.');
+  }
   const existing = await queryOne<{ n: number }>('SELECT COUNT(*)::int AS n FROM users');
   if (existing && existing.n > 0) {
-    log('The database already has users, so seeding was skipped. Use `npm run db:reset` to start over.');
+    log('The database already has users, so sample data was not loaded.');
     return;
   }
-  if (process.env.SEED_MODE === 'admin-only') return seedAdminOnly();
 
   const hash = await hashPassword(DEMO_PASSWORD);
   const today = todayUtc();
@@ -524,7 +531,7 @@ export async function seed({ quiet = false }: { quiet?: boolean } = {}) {
     await note(parentId, 'announcement', 'Parents’ meeting · Mkutano wa wazazi', 'Discuss Term 2 progress with class teachers.', '/calendar', 10);
     await note(ali.id, 'assignment', 'New assignment: Mathematics: Revision assignment', 'Mathematics · Form 2A', '/assignments', 20);
     await note(teacherIds[0]!, 'system', 'Quiz 2 marks are due on Friday', 'Mathematics · Form 2A, 2B and 3A', '/gradebook', 5);
-    await note(adminId, 'system', 'New demo request from Halima Othman', 'Example enquiry from the public website.', '/enquiries', 3);
+    await note(adminId, 'system', 'New enquiry from Halima Othman', 'Example enquiry from the public website.', '/enquiries', 3);
 
     // --- Audit log & enquiries (examples of what the app records) -------------------
     const auditRows: unknown[][] = [
@@ -543,15 +550,15 @@ export async function seed({ quiet = false }: { quiet?: boolean } = {}) {
     }
     await query(
       `INSERT INTO contact_requests (kind, full_name, school_name, email, phone, message, created_at) VALUES
-       ('demo', 'Halima Othman', 'Example Primary School (demo enquiry)', 'halima@example.com', '+255 777 000 111', 'We would like a demonstration for our management team next week.', now() - interval '3 hours'),
-       ('contact', 'Yussuf Kombo', 'Example Islamic Secondary School (demo enquiry)', 'yussuf@example.com', NULL, 'Does the system work in Kiswahili and support TZS fees?', now() - interval '2 days')`,
+       ('contact', 'Halima Othman', 'Example Primary School (sample enquiry)', 'halima@example.com', '+255 777 000 111', 'Could you tell us how teachers and parents get their accounts?', now() - interval '3 hours'),
+       ('contact', 'Yussuf Kombo', 'Example Islamic Secondary School (sample enquiry)', 'yussuf@example.com', NULL, 'Does the system work in Kiswahili and support TZS fees?', now() - interval '2 days')`,
       [],
       db,
     );
   });
   invalidateSettings();
 
-  log('Seeded the DEMO school "EduLearn Demo Secondary School" (fictional data). Demo accounts, password: password123');
+  log('Loaded SAMPLE data for local development: "EduLearn Demo Secondary School" (fictional). Shared password: password123');
   log('  admin@edulearn.school    — Salma Juma, administrator');
   log('  teacher@edulearn.school  — Zuhura Hamad, maths teacher & Form 2A class teacher');
   log('  parent@edulearn.school   — Mwanaisha Juma, mother of Ali (Form 2A) and Asha (Form 1A)');
@@ -559,3 +566,6 @@ export async function seed({ quiet = false }: { quiet?: boolean } = {}) {
 }
 
 export { pool };
+
+/** Email addresses created by earlier versions' demo seed. Used by the `deactivate-demo` command. */
+export const KNOWN_DEMO_EMAIL_PATTERN = String.raw`^[^@]+@((students|parents)\.)?edulearn\.school$`;

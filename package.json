@@ -2,7 +2,7 @@
   "name": "edulearn-sms",
   "private": true,
   "version": "1.0.0",
-  "description": "EduLearn School Management System — TypeScript + PostgreSQL",
+  "description": "EduLearn School Management System \u2014 TypeScript + PostgreSQL",
   "workspaces": [
     "server",
     "client"
@@ -12,10 +12,12 @@
     "build": "npm run build -w client && npm run build -w server",
     "start": "npm run start -w server",
     "db:migrate": "npm run db:migrate -w server",
-    "db:seed": "npm run db:seed -w server",
-    "db:reset": "npm run db:reset -w server",
+    "db:seed": "npm run db:setup -w server",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
-    "test": "npm test -w server"
+    "test": "npm test -w server",
+    "db:setup": "npm run db:setup -w server",
+    "db:sample": "npm run db:sample -w server",
+    "db:deactivate-demo": "npm run db:deactivate-demo -w server --"
   },
   "devDependencies": {
     "concurrently": "^10.0.7"
