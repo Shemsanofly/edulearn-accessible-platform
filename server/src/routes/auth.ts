@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
@@ -26,7 +26,19 @@ const limiter = (limit: number, message: string) =>
     message: { error: message },
   });
 
-const loginLimiter = limiter(20, 'Too many sign-in attempts. Please wait a few minutes and try again.');
+/**
+ * Only failed sign-ins count, per network address + email. A whole class signing in from the school's
+ * shared internet connection is never blocked, but guessing one account's password is.
+ */
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: config.isTest ? 1000 : 10,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip ?? '')}:${String(req.body?.email ?? '').trim().toLowerCase()}`,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many failed sign-in attempts for this account. Please wait 15 minutes or use “Forgot password”.' },
+});
 const resetLimiter = limiter(5, 'Too many reset requests. Please wait a few minutes and try again.');
 
 authRouter.post('/login', loginLimiter, async (req, res) => {

@@ -70,8 +70,16 @@ export const fullName = (p: { firstName: string; lastName: string }) => `${p.fir
 export const initials = (name: string) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]!.toUpperCase()).join('');
 
+let gradeBands: { grade: string; minPercent: number }[] = [];
+/** Use the school's default grading scale for letter grades (set once after sign-in). */
+export const setGradeBands = (bands: { grade: string; minPercent: number }[]) => {
+  gradeBands = [...bands].sort((a, b) => b.minPercent - a.minPercent);
+};
+
+/** Letter grade from the school's grading scale (CSEE by default); falls back to A–E in 10% steps. */
 export function letterGrade(pct: number | null | undefined): string {
   if (pct === null || pct === undefined) return '—';
+  if (gradeBands.length) return (gradeBands.find((b) => pct >= b.minPercent) ?? gradeBands[gradeBands.length - 1]!).grade;
   if (pct >= 90) return 'A';
   if (pct >= 80) return 'B';
   if (pct >= 70) return 'C';

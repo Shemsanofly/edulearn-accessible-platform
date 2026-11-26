@@ -29,7 +29,7 @@ const item = {
   settings: { to: '/settings', label: 'settings', icon: Settings, keywords: 'profile password language accessibility theme lugha' },
   timetable: { to: '/timetable', label: 'timetable', icon: CalendarClock, keywords: 'schedule lessons periods ratiba' },
   reportCards: { to: '/report-cards', label: 'reportCards', short: 'results', icon: Award, keywords: 'results exams matokeo ripoti' },
-  assignments: { to: '/assignments', label: 'assignments', icon: BookOpen, keywords: 'homework due kazi' },
+  assignments: { to: '/assignments', label: 'assignments', short: 'assignmentsShort', icon: BookOpen, keywords: 'homework due kazi' },
   fees: { to: '/fees', label: 'fees', short: 'feesShort', icon: Wallet, keywords: 'invoices payments receipts ada malipo' },
 } satisfies Record<string, NavItem>;
 

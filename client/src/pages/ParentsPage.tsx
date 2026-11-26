@@ -333,7 +333,7 @@ export function ParentsPage() {
                     const name = fullName(p);
                     return (
                       <tr key={p.id}>
-                        <td><PersonCell name={name} sub={p.email} color="var(--role-parent)" /></td>
+                        <td><PersonCell name={name} sub={p.email} color="var(--role-parent)" photoUrl={p.photoUrl} /></td>
                         <td>{p.phone ? <a href={`tel:${p.phone.replace(/\s/g, '')}`}>{p.phone}</a> : <span className="subtle">—</span>}</td>
                         <td>
                           {p.children.length === 0 ? (

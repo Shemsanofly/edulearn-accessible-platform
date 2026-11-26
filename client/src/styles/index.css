@@ -348,7 +348,10 @@ table { border-collapse: collapse; width: 100%; }
   color: var(--tone, var(--primary));
 }
 .stat-label { font-size: 0.82rem; color: var(--text-muted); font-weight: 500; }
+.stat > div:last-child { min-width: 0; }
 .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; margin-top: 2px; font-variant-numeric: tabular-nums; }
+/* Long amounts such as "TZS 21,270,000" step down so they fit their card. */
+.stat-value.long { font-size: 1.25rem; padding-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
 a.stat-link { color: inherit; display: block; transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
 a.stat-link:hover { text-decoration: none; transform: translateY(-2px); box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--tone, var(--primary)) 35%, var(--border)); }

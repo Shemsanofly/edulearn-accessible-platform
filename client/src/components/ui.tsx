@@ -102,7 +102,7 @@ export function StatCard({ icon, label, value, hint, tone = 'primary', to }: { i
       <div className="stat-icon" aria-hidden>{icon}</div>
       <div>
         <div className="stat-label">{label}</div>
-        <div className="stat-value">{value}</div>
+        <div className={cx('stat-value', typeof value === 'string' && value.length > 11 && 'long')}>{value}</div>
         {hint && <div className="stat-hint">{hint}</div>}
       </div>
     </div>

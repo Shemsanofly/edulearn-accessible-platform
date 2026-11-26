@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Accessibility, FlaskConical, GraduationCap, Keyboard, LogOut, Menu, Moon, Search, Settings, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import type { Notifications } from '../../../shared/types';
+import type { GradingScale, Notifications } from '../../../shared/types';
 import { api } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
-import { fullName, ROLE_META } from '../lib/format';
+import { fullName, ROLE_META, setGradeBands } from '../lib/format';
 import { LanguageSwitch, useI18n } from '../lib/i18n';
 import { NotificationBell } from './NotificationBell';
 import { AccessibilityPanel } from './AccessibilityPanel';
@@ -32,6 +32,11 @@ export function Layout() {
     refetchInterval: 60_000,
   });
   const unread = notes?.unreadMessages ?? 0;
+
+  // Letter grades everywhere follow the school's default grading scale.
+  const { data: scales } = useQuery({ queryKey: ['grading-scales'], queryFn: () => api.get<GradingScale[]>('/grading-scales'), staleTime: 10 * 60_000 });
+  const defaultScale = scales?.find((s) => s.isDefault) ?? scales?.[0];
+  if (defaultScale) setGradeBands(defaultScale.bands);
 
   // Close the mobile drawer and move focus to the page on navigation (helps screen reader users).
   useEffect(() => {

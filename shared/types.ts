@@ -141,6 +141,7 @@ export interface ParentListItem extends PersonRef {
   phone: string | null;
   isActive: boolean;
   children: ParentChild[];
+  photoUrl: string | null;
 }
 
 export interface ParentInput {

@@ -36,7 +36,7 @@ export const COMMON = {
     fees: 'Fees & payments', feesShort: 'Fees', announcements: 'Announcements', news: 'News', calendar: 'Calendar', messages: 'Messages',
     reports: 'Reports', enquiries: 'Enquiries', auditLog: 'Audit log', schoolSettings: 'School settings', settings: 'Settings',
     myClasses: 'My classes', gradesAttendance: 'Grades & attendance', grades: 'Grades', reportCards: 'Report cards', results: 'Results',
-    assignments: 'Assignments', notifications: 'Notifications', home: 'Home', menu: 'Menu', myChildren: 'My children',
+    assignments: 'Assignments', assignmentsShort: 'Assignments', notifications: 'Notifications', home: 'Home', menu: 'Menu', myChildren: 'My children',
     // Navigation groups
     people: 'People', academics: 'Academics', finance: 'Finance', communication: 'Communication', administration: 'Administration',
     teaching: 'Teaching', learning: 'Learning', school: 'School', family: 'Family',
@@ -67,7 +67,7 @@ export const COMMON = {
     fees: 'Ada na malipo', feesShort: 'Ada', announcements: 'Matangazo', news: 'Habari', calendar: 'Kalenda', messages: 'Ujumbe',
     reports: 'Ripoti', enquiries: 'Maulizo', auditLog: 'Kumbukumbu za shughuli', schoolSettings: 'Mipangilio ya shule', settings: 'Mipangilio',
     myClasses: 'Madarasa yangu', gradesAttendance: 'Alama na mahudhurio', grades: 'Alama', reportCards: 'Ripoti za matokeo', results: 'Matokeo',
-    assignments: 'Kazi za nyumbani', notifications: 'Arifa', home: 'Nyumbani', menu: 'Menyu', myChildren: 'Watoto wangu',
+    assignments: 'Kazi za nyumbani', assignmentsShort: 'Kazi', notifications: 'Arifa', home: 'Nyumbani', menu: 'Menyu', myChildren: 'Watoto wangu',
     people: 'Watu', academics: 'Taaluma', finance: 'Fedha', communication: 'Mawasiliano', administration: 'Utawala',
     teaching: 'Ufundishaji', learning: 'Masomo', school: 'Shule', family: 'Familia',
     admin: 'Msimamizi', teacher: 'Mwalimu', student: 'Mwanafunzi', parent: 'Mzazi',
