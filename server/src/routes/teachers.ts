@@ -3,6 +3,9 @@ import { z } from 'zod';
 import type { Course, CreatedAccount, TeacherDetail, TeacherListItem } from '../../../shared/types.js';
 import { query, queryOne, transaction } from '../db/pool.js';
 import { createUser, nextCode, updateUser } from '../lib/accounts.js';
+import { audit } from '../lib/audit.js';
+import { phone } from '../lib/phone.js';
+import { PHOTO_URL } from '../lib/sql.js';
 import { intParam, notFound, parse, provided } from '../lib/http.js';
 import { COURSE_SELECT } from '../lib/sql.js';
 import { email, isoDate, name, optionalText, password } from '../lib/validators.js';
@@ -14,7 +17,8 @@ const TEACHER_SELECT = `
   SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.is_active,
          t.employee_no, t.qualification, t.specialization, t.hired_on,
          (SELECT COUNT(*)::int FROM class_subjects cs WHERE cs.teacher_id = u.id) AS course_count,
-         (SELECT string_agg(c.name, ', ' ORDER BY c.name) FROM classes c WHERE c.homeroom_teacher_id = u.id) AS homeroom_class
+         (SELECT string_agg(c.name, ', ' ORDER BY c.name) FROM classes c WHERE c.homeroom_teacher_id = u.id) AS homeroom_class,
+         ${PHOTO_URL} AS photo_url
     FROM teachers t JOIN users u ON u.id = t.user_id`;
 
 const teacherSchema = z.object({
@@ -22,7 +26,7 @@ const teacherSchema = z.object({
   lastName: name,
   email,
   password: password.optional(),
-  phone: optionalText(40),
+  phone,
   employeeNo: z.string().trim().max(40).optional(),
   qualification: optionalText(120),
   specialization: optionalText(120),
@@ -68,6 +72,7 @@ teachersRouter.post('/', requireRole('admin'), async (req, res) => {
     );
     return acc;
   });
+  await audit(req, { action: 'create', entity: 'teacher', entityId: account.id, summary: `Added teacher ${body.firstName} ${body.lastName}` });
   const payload: CreatedAccount<TeacherDetail> = { record: (await loadTeacher(account.id))!, temporaryPassword: account.temporaryPassword };
   res.status(201).json(payload);
 });
@@ -90,11 +95,14 @@ teachersRouter.patch('/:id', requireRole('admin'), async (req, res) => {
       db,
     );
   });
-  res.json(await loadTeacher(id));
+  const updated = await loadTeacher(id);
+  await audit(req, { action: 'update', entity: 'teacher', entityId: id, summary: `Updated ${updated!.firstName} ${updated!.lastName}`, details: { fields: Object.keys(body) } });
+  res.json(updated);
 });
 
 teachersRouter.delete('/:id', requireRole('admin'), async (req, res) => {
-  const row = await queryOne("DELETE FROM users WHERE id = $1 AND role = 'teacher' RETURNING id", [intParam(req.params.id)]);
+  const row = await queryOne<{ name: string }>("DELETE FROM users WHERE id = $1 AND role = 'teacher' RETURNING first_name || ' ' || last_name AS name", [intParam(req.params.id)]);
   if (!row) throw notFound('Teacher');
+  await audit(req, { action: 'delete', entity: 'teacher', entityId: intParam(req.params.id), summary: `Deleted teacher ${row.name}` });
   res.status(204).end();
 });

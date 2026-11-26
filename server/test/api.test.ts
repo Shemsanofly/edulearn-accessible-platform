@@ -15,7 +15,7 @@ beforeAll(async () => {
     signIn('parent@edulearn.school'),
   ]);
   alexId = await idOf('student@edulearn.school');
-  sofiaId = await idOf('sofia.rivera@students.edulearn.school');
+  sofiaId = await idOf('asha.juma@students.edulearn.school');
   teacherId = await idOf('teacher@edulearn.school');
 });
 
@@ -37,7 +37,7 @@ describe('authentication', () => {
   it('returns the signed-in user', async () => {
     const res = await teacher.get('/api/auth/me');
     expect(res.status).toBe(200);
-    expect(res.body.user).toMatchObject({ role: 'teacher', firstName: 'Sarah' });
+    expect(res.body.user).toMatchObject({ role: 'teacher', firstName: 'Zuhura' });
     expect(res.body.user.passwordHash).toBeUndefined();
   });
 
@@ -67,7 +67,7 @@ describe('role-based access', () => {
   it('limits teachers to the students they teach', async () => {
     const res = await teacher.get('/api/students?pageSize=100');
     const classes = new Set(res.body.items.map((s: { className: string }) => s.className));
-    expect(classes).toEqual(new Set(['Grade 10A', 'Grade 10B', 'Grade 11A']));
+    expect(classes).toEqual(new Set(['Form 2A', 'Form 2B', 'Form 3A']));
   });
 
   it('lets parents see their own children only', async () => {
@@ -106,7 +106,7 @@ describe('attendance', () => {
     const future = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
     const res = await teacher.put('/api/attendance/register').send({ classId: 3, date: future, entries: [{ studentId: alexId, status: 'present' }] });
     expect(res.status).toBe(400);
-    // Ms. Johnson does not teach Grade 9A.
+    // Mwalimu Zuhura does not teach Form 1A.
     expect((await teacher.get('/api/attendance/register?classId=1')).status).toBe(403);
   });
 });
@@ -114,7 +114,7 @@ describe('attendance', () => {
 describe('gradebook', () => {
   it('saves grades and rejects scores above the maximum', async () => {
     const courses = await teacher.get('/api/courses');
-    const course = courses.body.find((c: { className: string }) => c.className === 'Grade 10A');
+    const course = courses.body.find((c: { className: string }) => c.className === 'Form 2A');
     const created = await teacher.post('/api/assessments').send({ courseId: course.id, title: 'Pop quiz', type: 'quiz', maxScore: 10 });
     expect(created.status).toBe(201);
     const tooHigh = await teacher.put(`/api/assessments/${created.body.id}/grades`).send({ grades: [{ studentId: alexId, score: 11 }] });
@@ -205,7 +205,7 @@ describe('dashboards', () => {
 
 describe('class pages', () => {
   it('lets teachers open only the classes they teach', async () => {
-    expect((await teacher.get('/api/classes/3')).status).toBe(200); // Grade 10A
-    expect((await teacher.get('/api/classes/1')).status).toBe(403); // Grade 9A
+    expect((await teacher.get('/api/classes/3')).status).toBe(200); // Form 2A
+    expect((await teacher.get('/api/classes/1')).status).toBe(403); // Form 1A
   });
 });

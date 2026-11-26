@@ -13,11 +13,13 @@ export type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'overdue';
 export type Audience = 'everyone' | 'staff' | 'students' | 'parents' | 'class';
 export type EventType = 'academic' | 'exam' | 'holiday' | 'meeting' | 'sports' | 'other';
 
-export type Accent = 'indigo' | 'ocean' | 'forest' | 'sunset' | 'grape' | 'rose';
+export type Accent = 'navy' | 'indigo' | 'ocean' | 'forest' | 'sunset' | 'grape' | 'rose';
+export type Language = 'en' | 'sw';
 
 export interface Preferences {
   theme?: 'light' | 'dark' | 'system';
   accent?: Accent;
+  language?: Language;
   fontScale?: number; // 1, 1.125, 1.25
   highContrast?: boolean;
   reducedMotion?: boolean;
@@ -32,6 +34,7 @@ export interface SessionUser {
   lastName: string;
   phone: string | null;
   preferences: Preferences;
+  photoUrl: string | null;
 }
 
 export interface Paginated<T> {
@@ -65,6 +68,7 @@ export interface StudentListItem extends PersonRef {
   gender: Gender;
   dateOfBirth: string | null;
   accessibilityNeeds: string[];
+  photoUrl: string | null;
 }
 
 export interface Guardian extends PersonRef {
@@ -107,6 +111,7 @@ export interface TeacherListItem extends PersonRef {
   hiredOn: string;
   courseCount: number;
   homeroomClass: string | null;
+  photoUrl: string | null;
 }
 
 export interface TeacherDetail extends TeacherListItem {
@@ -163,6 +168,8 @@ export interface Term {
   startsOn: string;
   endsOn: string;
   isCurrent: boolean;
+  academicYearId: number | null;
+  academicYearName: string | null;
 }
 
 export interface Subject {
@@ -288,6 +295,9 @@ export interface Assessment {
   gradedCount: number;
   studentCount: number;
   averagePercent: number | null;
+  examId: number | null;
+  examName: string | null;
+  fileCount: number;
 }
 
 export interface AssessmentInput {
@@ -356,6 +366,7 @@ export interface Invoice {
   status: InvoiceStatus;
   notes: string | null;
   createdAt: string;
+  feeStructureId: number | null;
 }
 
 export interface Payment {
@@ -366,6 +377,7 @@ export interface Payment {
   reference: string | null;
   paidOn: string;
   recordedByName: string | null;
+  receiptNo: string;
 }
 
 export interface InvoiceDetail extends Invoice {
@@ -468,6 +480,7 @@ export interface MessageInput {
 
 export interface Notifications {
   unreadMessages: number;
+  unreadNotifications: number;
 }
 
 export interface SearchResults {
@@ -498,6 +511,10 @@ export interface AdminDashboard {
   attendanceToday: AttendanceSummary & { classesTaken: number; classesTotal: number };
   attendanceTrend: { date: string; rate: number | null }[];
   enrollmentByGrade: { gradeLevel: number; count: number }[];
+  /** Average % per subject in the latest published exam, for the performance overview. */
+  performance: { examName: string | null; subjects: { subjectName: string; color: string; averagePercent: number | null }[] };
+  recentActivity: AuditEntry[];
+  newEnquiries: number;
   fees: FeeSummary;
   /** Counts used by the "Getting started" checklist for a new school. */
   setup: { terms: number; subjects: number; courses: number; lessons: number };
@@ -540,3 +557,303 @@ export interface ParentDashboard {
 }
 
 export type Dashboard = AdminDashboard | TeacherDashboard | StudentDashboard | ParentDashboard;
+
+// ---------------------------------------------------------------------------
+// School settings & public site
+// ---------------------------------------------------------------------------
+export interface SchoolSettings {
+  name: string;
+  motto: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  currency: string;
+  defaultLanguage: Language;
+  /** What a class level is called, e.g. "Form" or "Standard". */
+  levelLabel: string;
+  isDemo: boolean;
+  logoUrl: string | null;
+}
+
+export type SchoolSettingsInput = Partial<Omit<SchoolSettings, 'isDemo' | 'logoUrl'>>;
+
+export interface ContactRequestInput {
+  kind: 'contact' | 'demo';
+  fullName: string;
+  schoolName?: string | null;
+  email: string;
+  phone?: string | null;
+  message: string;
+}
+
+export interface ContactRequest extends Required<ContactRequestInput> {
+  id: number;
+  status: 'new' | 'contacted' | 'closed';
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Academic years & grading
+// ---------------------------------------------------------------------------
+export interface AcademicYear {
+  id: number;
+  name: string;
+  startsOn: string;
+  endsOn: string;
+  isCurrent: boolean;
+  termCount: number;
+}
+
+export interface GradeBand {
+  grade: string;
+  minPercent: number;
+  maxPercent: number;
+  points: number | null;
+  remark: string | null;
+}
+
+export interface GradingScale {
+  id: number;
+  name: string;
+  description: string | null;
+  isDefault: boolean;
+  bands: GradeBand[];
+}
+
+export interface GradingScaleInput {
+  name: string;
+  description?: string | null;
+  isDefault?: boolean;
+  bands: GradeBand[];
+}
+
+// ---------------------------------------------------------------------------
+// Examinations & report cards
+// ---------------------------------------------------------------------------
+export interface Exam {
+  id: number;
+  name: string;
+  termId: number | null;
+  termName: string | null;
+  gradingScaleId: number | null;
+  gradingScaleName: string | null;
+  startsOn: string;
+  endsOn: string;
+  maxMarks: number;
+  publishedAt: string | null;
+  classes: { id: number; name: string }[];
+  /** Marks entered so far vs. expected (students × subjects). */
+  marksEntered: number;
+  marksExpected: number;
+}
+
+export interface ExamInput {
+  name: string;
+  termId?: number | null;
+  gradingScaleId?: number | null;
+  startsOn: string;
+  endsOn: string;
+  maxMarks?: number;
+  classIds: number[];
+}
+
+export interface ExamPaper {
+  assessmentId: number;
+  courseId: number;
+  classId: number;
+  className: string;
+  subjectName: string;
+  color: string;
+  teacherName: string | null;
+  graded: number;
+  students: number;
+  averagePercent: number | null;
+}
+
+export interface ExamDetail extends Exam {
+  papers: ExamPaper[];
+}
+
+export interface ReportCardSubject {
+  subjectName: string;
+  teacherName: string | null;
+  marks: number | null;
+  maxMarks: number;
+  percent: number | null;
+  grade: string | null;
+  points: number | null;
+  remark: string | null;
+  classAverage: number | null;
+}
+
+export interface ReportCard {
+  school: SchoolSettings;
+  exam: Exam;
+  student: StudentListItem;
+  subjects: ReportCardSubject[];
+  total: number;
+  averagePercent: number | null;
+  grade: string | null;
+  position: number | null;
+  classSize: number;
+  attendance: AttendanceSummary;
+  remark: string | null;
+  bands: GradeBand[];
+}
+
+export interface ReportCardSummary {
+  examId: number;
+  examName: string;
+  termName: string | null;
+  publishedAt: string;
+  averagePercent: number | null;
+  grade: string | null;
+  position: number | null;
+  classSize: number;
+}
+
+export interface ClassPerformance {
+  exam: Exam;
+  classId: number;
+  className: string;
+  subjects: { subjectName: string; color: string; averagePercent: number | null; graded: number; distribution: Record<string, number> }[];
+  ranking: { studentId: number; name: string; admissionNo: string; total: number; averagePercent: number | null; grade: string | null; position: number; subjectsGraded: number }[];
+  bands: GradeBand[];
+}
+
+// ---------------------------------------------------------------------------
+// Fees
+// ---------------------------------------------------------------------------
+export interface FeeStructure {
+  id: number;
+  name: string;
+  amount: number;
+  level: number | null;
+  termId: number | null;
+  termName: string | null;
+  dueDate: string;
+  description: string | null;
+  isActive: boolean;
+  invoiceCount: number;
+  collected: number;
+}
+
+export interface FeeStructureInput {
+  name: string;
+  amount: number;
+  level?: number | null;
+  termId?: number | null;
+  dueDate: string;
+  description?: string | null;
+  isActive?: boolean;
+}
+
+export interface Receipt {
+  school: SchoolSettings;
+  payment: Payment;
+  invoice: Invoice;
+  balanceAfter: number;
+}
+
+// ---------------------------------------------------------------------------
+// Assignments, notifications, audit
+// ---------------------------------------------------------------------------
+export interface AttachmentInfo {
+  id: number;
+  filename: string;
+  mime: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
+
+export type AssignmentStatus = 'marked' | 'overdue' | 'due_soon' | 'upcoming' | 'no_deadline';
+
+export interface StudentAssignment extends Assessment {
+  status: AssignmentStatus;
+  score: number | null;
+  percent: number | null;
+  feedback: string | null;
+  teacherName: string | null;
+  files: AttachmentInfo[];
+}
+
+export type NotificationType = 'attendance' | 'results' | 'fees' | 'announcement' | 'assignment' | 'message' | 'system';
+
+export interface AppNotification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  actorId: number | null;
+  actorName: string | null;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  summary: string;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+export interface AttendanceReportRow {
+  studentId: number;
+  name: string;
+  admissionNo: string;
+  className: string | null;
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+  total: number;
+  rate: number | null;
+}
+
+export interface AttendanceReport {
+  from: string;
+  to: string;
+  rows: AttendanceReportRow[];
+  daily: { date: string; present: number; late: number; absent: number; excused: number; rate: number | null }[];
+}
+
+export interface FinancialReport {
+  from: string;
+  to: string;
+  summary: FeeSummary;
+  collectedInPeriod: number;
+  byMonth: { month: string; collected: number }[];
+  byMethod: { method: PaymentMethod; collected: number; count: number }[];
+  byClass: { className: string; billed: number; collected: number; outstanding: number }[];
+  payments: (Payment & { studentName: string; admissionNo: string; className: string | null; invoiceTitle: string })[];
+}
+
+export interface TeacherReportRow {
+  id: number;
+  name: string;
+  employeeNo: string;
+  specialization: string | null;
+  homeroomClass: string | null;
+  courses: number;
+  classes: number;
+  lessonsPerWeek: number;
+  students: number;
+  averagePercent: number | null;
+  ungradedAssessments: number;
+}
+
+export interface StudentReportRow extends StudentListItem {
+  guardians: string;
+  guardianPhones: string;
+  attendanceRate: number | null;
+  averagePercent: number | null;
+  feeBalance: number;
+}

@@ -3,6 +3,8 @@ import { z } from 'zod';
 import type { Announcement, Contact, Message, SchoolEvent, SessionUser } from '../../../shared/types.js';
 import { query, queryOne } from '../db/pool.js';
 import { badRequest, forbidden, intParam, notFound, parse, provided } from '../lib/http.js';
+import { audit } from '../lib/audit.js';
+import { notifyWhere } from '../lib/notify.js';
 import { ANNOUNCEMENT_SELECT, EVENT_SELECT } from '../lib/sql.js';
 import { id, isoDate, optionalText } from '../lib/validators.js';
 import { me, requireRole } from '../middleware/auth.js';
@@ -68,6 +70,20 @@ communicationRouter.post('/announcements', requireRole('admin', 'teacher'), asyn
     'INSERT INTO announcements (title, body, audience, class_id, pinned, author_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
     [b.title, b.body, b.audience, b.classId ?? null, b.pinned, user.id],
   );
+  const recipients: Record<string, string> = {
+    everyone: "SELECT id FROM users WHERE is_active AND id <> $1 AND $2::int IS NULL",
+    staff: "SELECT id FROM users WHERE is_active AND role IN ('admin','teacher') AND id <> $1 AND $2::int IS NULL",
+    students: "SELECT id FROM users WHERE is_active AND role = 'student' AND $1::int IS NOT NULL AND $2::int IS NULL",
+    parents: "SELECT id FROM users WHERE is_active AND role = 'parent' AND $1::int IS NOT NULL AND $2::int IS NULL",
+    class: `SELECT s.user_id AS id FROM students s WHERE s.class_id = $2 AND $1::int IS NOT NULL
+            UNION SELECT g.parent_id FROM guardians g JOIN students s ON s.user_id = g.student_id WHERE s.class_id = $2`,
+  };
+  await notifyWhere(recipients[b.audience]!, [user.id, b.classId ?? null], {
+    type: 'announcement',
+    title: b.title,
+    body: b.body.slice(0, 160),
+    link: '/announcements',
+  });
   res.status(201).json(await queryOne<Announcement>(`${ANNOUNCEMENT_SELECT} WHERE a.id = $1`, [row!.id]));
 });
 
@@ -86,7 +102,8 @@ communicationRouter.delete('/announcements/:id', requireRole('admin', 'teacher')
   const row = await queryOne<{ authorId: number | null }>('SELECT author_id FROM announcements WHERE id = $1', [intParam(req.params.id)]);
   if (!row) throw notFound('Announcement');
   if (user.role !== 'admin' && row.authorId !== user.id) throw forbidden('You can only delete your own announcements');
-  await query('DELETE FROM announcements WHERE id = $1', [intParam(req.params.id)]);
+  const removed = await queryOne<{ title: string }>('DELETE FROM announcements WHERE id = $1 RETURNING title', [intParam(req.params.id)]);
+  await audit(req, { action: 'delete', entity: 'announcement', entityId: intParam(req.params.id), summary: `Deleted announcement “${removed?.title}”` });
   res.status(204).end();
 });
 

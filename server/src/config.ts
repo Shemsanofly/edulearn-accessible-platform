@@ -13,6 +13,16 @@ export const config = {
   databaseUrl: env.DATABASE_URL ?? 'postgres://edulearn:edulearn@localhost:5432/edulearn',
   jwtSecret: env.JWT_SECRET ?? 'dev-only-secret-change-me-dev-only-secret',
   sessionDays: Number(env.SESSION_DAYS ?? 7),
-  schoolName: env.SCHOOL_NAME ?? 'EduLearn Academy',
-  currency: env.CURRENCY ?? 'USD',
+  /** Public address of the app, used in password-reset emails. */
+  appUrl: env.APP_URL ?? 'http://localhost:5173',
+  /** Optional SMTP settings for password-reset emails. Without them, resets go through the school office. */
+  smtp: env.SMTP_HOST
+    ? {
+        host: env.SMTP_HOST,
+        port: Number(env.SMTP_PORT ?? 587),
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASS,
+        from: env.SMTP_FROM ?? env.SMTP_USER ?? 'no-reply@example.com',
+      }
+    : null,
 } as const;
