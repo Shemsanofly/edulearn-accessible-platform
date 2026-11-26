@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Eye, EyeOff, Inbox, RefreshCw, Search } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, ChevronLeft, ChevronRight, Eye, EyeOff, Inbox, RefreshCw, Search } from 'lucide-react';
 import {
   cloneElement, forwardRef, isValidElement, useEffect, useId, useState,
   type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactElement, type ReactNode,
@@ -98,16 +98,25 @@ export function PersonCell({ name, sub, to, color, photoUrl }: { name: string; s
 // ---------------------------------------------------------------- Stats & progress
 export function StatCard({ icon, label, value, hint, tone = 'primary', to }: { icon: ReactNode; label: string; value: ReactNode; hint?: ReactNode; tone?: Tone; to?: string }) {
   const body = (
-    <div className={cx('stat', `tone-${tone}`)}>
-      <div className="stat-icon" aria-hidden>{icon}</div>
-      <div>
-        <div className="stat-label">{label}</div>
-        <div className={cx('stat-value', typeof value === 'string' && value.length > 11 && 'long')}>{value}</div>
-        {hint && <div className="stat-hint">{hint}</div>}
-      </div>
-    </div>
+    <>
+      <div className="stat-head"><span aria-hidden>{icon}</span>{label}</div>
+      <div className={cx('stat-value', typeof value === 'string' && value.length > 11 && 'long')}>{value}</div>
+      {hint && <div className="stat-hint">{hint}</div>}
+    </>
   );
-  return to ? <Link to={to} className="card stat-link">{body}</Link> : <div className="card">{body}</div>;
+  return to ? (
+    <Link to={to} className={cx('stat-cell', `tone-${tone}`)}>
+      {body}
+      <ArrowUpRight size={16} className="go" aria-hidden />
+    </Link>
+  ) : (
+    <div className={cx('stat-cell', `tone-${tone}`)}>{body}</div>
+  );
+}
+
+/** Key figures shown as one divided strip. Put StatCards inside. */
+export function StatGroup({ children, className, label }: { children: ReactNode; className?: string; label?: string }) {
+  return <section className={cx('stat-group', className)} aria-label={label}>{children}</section>;
 }
 
 export function ProgressBar({ value, tone = 'primary', label }: { value: number | null; tone?: Tone; label: string }) {

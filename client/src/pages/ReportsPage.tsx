@@ -9,7 +9,7 @@ import type {
 } from '../../../shared/types';
 import { ColumnChart, TrendChart } from '../components/charts';
 import {
-  Badge, Button, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Select, StatCard, Tabs,
+  Badge, Button, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Select, StatCard, StatGroup, Tabs,
 } from '../components/ui';
 import { api } from '../lib/api';
 import { useUser } from '../lib/auth';
@@ -184,12 +184,12 @@ function AttendanceReportPanel() {
       <p className="print-only small">{formatDate(from)} – {formatDate(to)}</p>
       {q.isLoading ? <Loading /> : q.error ? <ErrorState error={q.error} onRetry={q.refetch} /> : !d ? null : (
         <div className="stack" style={{ gap: 20 }}>
-          <div className="grid grid-4">
-            <StatCard icon={<ClipboardCheck size={22} />} label={t('avgRate')} value={percent(totals.rate, 1)} tone={attendanceTone(totals.rate)} hint={`${formatDate(from)} – ${formatDate(to)}`} />
-            <StatCard icon={<CheckCircle2 size={22} />} label={t('present')} value={totals.present} tone="success" hint={`${t('late')}: ${totals.late}`} />
-            <StatCard icon={<AlertTriangle size={22} />} label={t('absent')} value={totals.absent} tone="danger" hint={`${t('excused')}: ${totals.excused}`} />
-            <StatCard icon={<Users size={22} />} label={t('lowAttendance')} value={totals.below} tone={totals.below ? 'warning' : 'success'} hint={t('studentsBelow', { n: totals.below })} />
-          </div>
+          <StatGroup>
+            <StatCard icon={<ClipboardCheck size={16} />} label={t('avgRate')} value={percent(totals.rate, 1)} tone={attendanceTone(totals.rate)} hint={`${formatDate(from)} – ${formatDate(to)}`} />
+            <StatCard icon={<CheckCircle2 size={16} />} label={t('present')} value={totals.present} tone="success" hint={`${t('late')}: ${totals.late}`} />
+            <StatCard icon={<AlertTriangle size={16} />} label={t('absent')} value={totals.absent} tone="danger" hint={`${t('excused')}: ${totals.excused}`} />
+            <StatCard icon={<Users size={16} />} label={t('lowAttendance')} value={totals.below} tone={totals.below ? 'warning' : 'success'} hint={t('studentsBelow', { n: totals.below })} />
+          </StatGroup>
           {d.daily.length > 0 && (
             <Card>
               <CardHeader title={t('daily')} />
@@ -362,12 +362,12 @@ function FinancialReportPanel() {
       <p className="print-only small">{formatDate(from)} – {formatDate(to)}</p>
       {q.isLoading ? <Loading /> : q.error ? <ErrorState error={q.error} onRetry={q.refetch} /> : !d ? null : (
         <div className="stack" style={{ gap: 20 }}>
-          <div className="grid grid-4">
-            <StatCard icon={<Receipt size={22} />} label={t('billed')} value={money(d.summary.billed)} />
-            <StatCard icon={<CheckCircle2 size={22} />} label={t('collected')} value={money(d.summary.collected)} tone="success" hint={`${t('inPeriod')}: ${money(d.collectedInPeriod)}`} />
-            <StatCard icon={<Wallet size={22} />} label={t('outstanding')} value={money(d.summary.outstanding)} tone="warning" />
-            <StatCard icon={<AlertTriangle size={22} />} label={t('overdue')} value={money(d.summary.overdueAmount)} tone="danger" hint={`${d.summary.overdueCount}`} />
-          </div>
+          <StatGroup>
+            <StatCard icon={<Receipt size={16} />} label={t('billed')} value={money(d.summary.billed)} />
+            <StatCard icon={<CheckCircle2 size={16} />} label={t('collected')} value={money(d.summary.collected)} tone="success" hint={`${t('inPeriod')}: ${money(d.collectedInPeriod)}`} />
+            <StatCard icon={<Wallet size={16} />} label={t('outstanding')} value={money(d.summary.outstanding)} tone="warning" />
+            <StatCard icon={<AlertTriangle size={16} />} label={t('overdue')} value={money(d.summary.overdueAmount)} tone="danger" hint={`${d.summary.overdueCount}`} />
+          </StatGroup>
           <div className="grid grid-2">
             <Card>
               <CardHeader title={t('byMonth')} />

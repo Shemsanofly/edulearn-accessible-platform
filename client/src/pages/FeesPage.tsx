@@ -14,7 +14,7 @@ import { Modal, useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
   Alert, Badge, Button, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
-  ProgressBar, SearchInput, Segmented, Select, SortHeader, StatCard, Tabs, Textarea, Toggle, useDebounced, useSort,
+  ProgressBar, SearchInput, Segmented, Select, SortHeader, StatCard, StatGroup, Tabs, Textarea, Toggle, useDebounced, useSort,
 } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
@@ -208,12 +208,12 @@ function AdminFees() {
         }
       />
 
-      <div className="grid grid-4 mb-3">
-        <StatCard icon={<Receipt size={22} />} label={t('billed')} value={s ? money(s.billed) : '…'} hint={t('allInvoices')} />
-        <StatCard icon={<CheckCircle2 size={22} />} label={t('collected')} value={s ? money(s.collected) : '…'} tone="success" hint={collectedRate !== null ? t('ofBilled', { pct: percent(collectedRate) }) : undefined} />
-        <StatCard icon={<Wallet size={22} />} label={t('outstanding')} value={s ? money(s.outstanding) : '…'} tone="warning" />
-        <StatCard icon={<AlertTriangle size={22} />} label={t('overdue')} value={s ? money(s.overdueAmount) : '…'} tone="danger" hint={s ? t('invoicesN', { n: s.overdueCount }) : undefined} />
-      </div>
+      <StatGroup className="mb-3">
+        <StatCard icon={<Receipt size={16} />} label={t('billed')} value={s ? money(s.billed) : '…'} hint={t('allInvoices')} />
+        <StatCard icon={<CheckCircle2 size={16} />} label={t('collected')} value={s ? money(s.collected) : '…'} tone="success" hint={collectedRate !== null ? t('ofBilled', { pct: percent(collectedRate) }) : undefined} />
+        <StatCard icon={<Wallet size={16} />} label={t('outstanding')} value={s ? money(s.outstanding) : '…'} tone="warning" />
+        <StatCard icon={<AlertTriangle size={16} />} label={t('overdue')} value={s ? money(s.overdueAmount) : '…'} tone="danger" hint={s ? t('invoicesN', { n: s.overdueCount }) : undefined} />
+      </StatGroup>
 
       <Tabs<AdminTab>
         label={t('title')}
@@ -1006,11 +1006,11 @@ function FamilyFees() {
         <ErrorState error={q.error} onRetry={q.refetch} />
       ) : (
         <>
-          <div className="grid grid-3 mb-3">
-            <StatCard icon={<Wallet size={22} />} label={t('totalBalance')} value={money(balance)} tone={balance > 0 ? 'warning' : 'success'} hint={balance > 0 ? t('outstanding') : t('allPaid')} />
-            <StatCard icon={<AlertTriangle size={22} />} label={t('overdue')} value={money(overdue.reduce((s, i) => s + i.balance, 0))} tone={overdue.length ? 'danger' : 'success'} hint={overdue.length ? t('invoicesN', { n: overdue.length }) : t('nothingOverdue')} />
-            <StatCard icon={<Receipt size={22} />} label={t('nextDue')} value={nextDue ? money(nextDue.balance) : '—'} tone="info" hint={nextDue ? `${nextDue.title} · ${formatDate(nextDue.dueDate)}` : t('noUpcoming')} />
-          </div>
+          <StatGroup className="mb-3">
+            <StatCard icon={<Wallet size={16} />} label={t('totalBalance')} value={money(balance)} tone={balance > 0 ? 'warning' : 'success'} hint={balance > 0 ? t('outstanding') : t('allPaid')} />
+            <StatCard icon={<AlertTriangle size={16} />} label={t('overdue')} value={money(overdue.reduce((s, i) => s + i.balance, 0))} tone={overdue.length ? 'danger' : 'success'} hint={overdue.length ? t('invoicesN', { n: overdue.length }) : t('nothingOverdue')} />
+            <StatCard icon={<Receipt size={16} />} label={t('nextDue')} value={nextDue ? money(nextDue.balance) : '—'} tone="info" hint={nextDue ? `${nextDue.title} · ${formatDate(nextDue.dueDate)}` : t('noUpcoming')} />
+          </StatGroup>
 
           {overdue.length > 0 && (
             <div className="mb-3">
