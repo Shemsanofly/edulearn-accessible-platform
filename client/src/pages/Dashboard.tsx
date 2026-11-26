@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertTriangle, ArrowRight, BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, Clock, GraduationCap,
+  AlertTriangle, ArrowRight, BookOpen, Check, CalendarDays, CheckCircle2, ClipboardCheck, Clock, GraduationCap,
   Megaphone, NotebookPen, Pin, School, UserRound, Users, Wallet,
 } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type {
   AdminDashboard, Announcement, Assessment, Dashboard, ParentDashboard, SchoolEvent, StudentDashboard,
@@ -10,7 +11,7 @@ import type {
 } from '../../../shared/types';
 import { ColumnChart, Donut, TrendChart } from '../components/charts';
 import {
-  Alert, Avatar, Badge, ButtonLink, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, ProgressBar, StatCard, cx,
+  Alert, Avatar, Badge, Button, ButtonLink, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, ProgressBar, StatCard, cx,
 } from '../components/ui';
 import { api } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
@@ -52,12 +53,14 @@ export function DashboardPage() {
 }
 
 // ---------------------------------------------------------------- Shared widgets
-function Welcome({ title, subtitle, action, from, to }: { title: string; subtitle: string; action?: React.ReactNode; from?: string; to?: string }) {
+/** Greeting banner; its colours follow the person's chosen colour theme. */
+function Welcome({ title, subtitle, action }: { title: string; subtitle: string; action?: React.ReactNode }) {
   return (
-    <section className="welcome" style={{ ['--welcome-from' as string]: from, ['--welcome-to' as string]: to }}>
+    <section className="welcome">
       <div>
         <h1>{title}</h1>
         <p>{subtitle}</p>
+        <span className="chip-light"><CalendarDays size={14} aria-hidden /> {todayLabel()}</span>
       </div>
       {action}
     </section>
@@ -209,7 +212,7 @@ function AdminView({ d, name }: { d: AdminDashboard; name: string }) {
     <>
       <Welcome
         title={`${greeting()}, ${name}`}
-        subtitle={`Here’s how ${school.name} is doing today · ${todayLabel()}`}
+        subtitle={`Here’s how ${school.name} is doing today.`}
         action={<ButtonLink to="/students?new=1" icon={<GraduationCap size={18} />}>Enrol a student</ButtonLink>}
       />
       <div className="grid grid-4 mb-3">
@@ -218,6 +221,8 @@ function AdminView({ d, name }: { d: AdminDashboard; name: string }) {
         <StatCard icon={<ClipboardCheck size={22} />} label="Attendance today" value={percent(att.rate, 1)} tone={attendanceTone(att.rate)} hint={`${att.absent} absent · ${att.late} late`} to="/attendance" />
         <StatCard icon={<Wallet size={22} />} label="Fees outstanding" value={money(d.fees.outstanding)} tone={d.fees.overdueCount ? 'warning' : 'success'} hint={`${plural(d.fees.overdueCount, 'overdue invoice')}`} to="/fees?status=overdue" />
       </div>
+
+      <SetupChecklist d={d} />
 
       {missingRegisters > 0 && (
         <div className="mb-3">
@@ -304,9 +309,7 @@ function TeacherView({ d, name }: { d: TeacherDashboard; name: string }) {
     <>
       <Welcome
         title={`${greeting()}, ${name}`}
-        subtitle={`You have ${plural(d.today.length, 'lesson')} today · ${todayLabel()}`}
-        from="#c2185b"
-        to="#7209b7"
+        subtitle={d.today.length ? `You have ${plural(d.today.length, 'lesson')} today.` : 'No lessons on your timetable today.'}
         action={d.homeroom && !d.homeroom.attendanceTaken ? (
           <ButtonLink to={`/attendance?classId=${d.homeroom.classId}`} icon={<ClipboardCheck size={18} />}>Take {d.homeroom.className} register</ButtonLink>
         ) : undefined}
@@ -360,9 +363,7 @@ function StudentView({ d, name }: { d: StudentDashboard; name: string }) {
     <>
       <Welcome
         title={`${greeting()}, ${name}!`}
-        subtitle={`${o.student.className ?? 'No class yet'} · ${todayLabel()}`}
-        from="#7209b7"
-        to="#4361ee"
+        subtitle={o.student.className ? `${o.student.className} · let’s make today a good one.` : 'You haven’t been placed in a class yet.'}
         action={<ButtonLink to="/progress" icon={<NotebookPen size={18} />}>My grades</ButtonLink>}
       />
       {o.student.accessibilityNeeds.length > 0 && (
@@ -374,7 +375,7 @@ function StudentView({ d, name }: { d: StudentDashboard; name: string }) {
       )}
       <div className="grid grid-4 mb-3">
         <StatCard icon={<NotebookPen size={22} />} label="Overall average" value={percent(o.overallAverage, 1)} tone={gradeTone(o.overallAverage)} hint={`Grade ${letterGrade(o.overallAverage)}`} to="/progress" />
-        <StatCard icon={<ClipboardCheck size={22} />} label="Attendance" value={percent(o.attendance.rate, 1)} tone={attendanceTone(o.attendance.rate)} hint={`${o.attendance.absent} absences this term`} to="/progress?tab=attendance" />
+        <StatCard icon={<ClipboardCheck size={22} />} label="Attendance" value={percent(o.attendance.rate, 1)} tone={attendanceTone(o.attendance.rate)} hint={`${plural(o.attendance.absent, 'absence')} this term`} to="/progress?tab=attendance" />
         <StatCard icon={<BookOpen size={22} />} label="Due soon" value={o.upcoming.length} tone="accent" hint="Assignments and tests" to="/assignments" />
         <StatCard icon={<Wallet size={22} />} label="Fee balance" value={money(o.feeBalance)} tone={o.feeBalance > 0 ? 'warning' : 'success'} hint={o.feeBalance > 0 ? 'Outstanding' : 'All paid'} to="/fees" />
       </div>
@@ -415,8 +416,6 @@ function ParentView({ d, name }: { d: ParentDashboard; name: string }) {
       <Welcome
         title={`${greeting()}, ${name}`}
         subtitle={d.children.length ? `Here’s how ${d.children.map((c) => c.student.firstName).join(' and ')} ${d.children.length === 1 ? 'is' : 'are'} getting on` : 'Welcome to the parent portal'}
-        from="#3a0ca3"
-        to="#4361ee"
         action={<ButtonLink to="/messages?compose=1" icon={<Users size={18} />}>Message a teacher</ButtonLink>}
       />
       {d.children.length === 0 ? (
@@ -469,5 +468,57 @@ function MiniStat({ label, value, sub, tone }: { label: string; value: string; s
       <div className="bold num" style={{ fontSize: '1.25rem', color: 'var(--tone)' }}>{value}</div>
       <div className="tiny muted">{sub}</div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------- Getting started (admin)
+const SETUP_KEY = 'edulearn-setup-dismissed';
+
+/** Guides a brand-new school through setup in the order things depend on each other. Hides itself once done. */
+function SetupChecklist({ d }: { d: AdminDashboard }) {
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(SETUP_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const steps = [
+    { label: 'Add the school term', done: d.setup.terms > 0, to: '/academics?tab=terms' },
+    { label: 'Add the subjects you teach', done: d.setup.subjects > 0, to: '/academics' },
+    { label: 'Add your teachers', done: d.counts.teachers > 0, to: '/teachers' },
+    { label: 'Create classes', done: d.counts.classes > 0, to: '/classes' },
+    { label: 'Choose who teaches what in each class', done: d.setup.courses > 0, to: '/classes' },
+    { label: 'Enrol students', done: d.counts.students > 0, to: '/students?new=1' },
+    { label: 'Build the timetable', done: d.setup.lessons > 0, to: '/timetable' },
+  ];
+  const done = steps.filter((s) => s.done).length;
+  if (dismissed || done === steps.length) return null;
+  const next = steps.find((s) => !s.done);
+  return (
+    <Card className="mb-3">
+      <CardHeader
+        title="Let’s get your school set up"
+        subtitle={`${done} of ${steps.length} steps done — each one only takes a minute or two.`}
+        action={
+          <Button size="sm" variant="ghost" onClick={() => {
+            try { localStorage.setItem(SETUP_KEY, '1'); } catch { /* ignore */ }
+            setDismissed(true);
+          }}>Hide</Button>
+        }
+      />
+      <div className="card-body stack">
+        <ProgressBar value={(done / steps.length) * 100} tone="success" label="Setup progress" />
+        <ol className="checklist">
+          {steps.map((s, i) => (
+            <li key={s.label} className={cx('check-item', s.done && 'done')}>
+              <span className="check-dot" aria-hidden>{s.done ? <Check size={15} /> : i + 1}</span>
+              <span className="label">{s.label}<span className="sr-only">{s.done ? ' — done' : ' — to do'}</span></span>
+              {!s.done && <ButtonLink to={s.to} size="sm" variant={s === next ? 'primary' : 'secondary'}>{s === next ? 'Start' : 'Open'}</ButtonLink>}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </Card>
   );
 }

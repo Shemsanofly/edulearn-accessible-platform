@@ -13,8 +13,11 @@ export type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'overdue';
 export type Audience = 'everyone' | 'staff' | 'students' | 'parents' | 'class';
 export type EventType = 'academic' | 'exam' | 'holiday' | 'meeting' | 'sports' | 'other';
 
+export type Accent = 'indigo' | 'ocean' | 'forest' | 'sunset' | 'grape' | 'rose';
+
 export interface Preferences {
   theme?: 'light' | 'dark' | 'system';
+  accent?: Accent;
   fontScale?: number; // 1, 1.125, 1.25
   highContrast?: boolean;
   reducedMotion?: boolean;
@@ -496,6 +499,8 @@ export interface AdminDashboard {
   attendanceTrend: { date: string; rate: number | null }[];
   enrollmentByGrade: { gradeLevel: number; count: number }[];
   fees: FeeSummary;
+  /** Counts used by the "Getting started" checklist for a new school. */
+  setup: { terms: number; subjects: number; courses: number; lessons: number };
   upcomingEvents: SchoolEvent[];
   announcements: Announcement[];
 }

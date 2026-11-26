@@ -1,0 +1,3 @@
+# The original HTML prototype is kept for reference only. Exclude it from GitHub's
+# language statistics so the repository is shown as what it is: a TypeScript project.
+legacy/** linguist-vendored
