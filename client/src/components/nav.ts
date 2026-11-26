@@ -1,6 +1,6 @@
 import {
   Award, BarChart3, BookOpen, Building2, Calendar, CalendarClock, ClipboardCheck, FileText, GraduationCap, History, Home,
-  Inbox, Layers, Megaphone, MessageSquare, NotebookPen, School, Settings, UserRound, Users, Wallet, type LucideIcon,
+  Inbox, Layers, MailPlus, Megaphone, MessageSquare, NotebookPen, School, Settings, UserRound, Users, Wallet, type LucideIcon,
 } from 'lucide-react';
 import type { Role } from '../../../shared/types';
 import type { CommonKey } from '../lib/i18n';
@@ -42,6 +42,7 @@ export const NAV: Record<Role, NavGroup[]> = {
         { to: '/students', label: 'students', icon: GraduationCap, keywords: 'pupils learners enrol wanafunzi' },
         { to: '/teachers', label: 'teachers', icon: UserRound, keywords: 'staff walimu' },
         { to: '/parents', label: 'parents', icon: Users, keywords: 'guardians families wazazi' },
+        { to: '/invitations', label: 'invitations', icon: MailPlus, keywords: 'invite register account mwaliko' },
       ],
     },
     {
@@ -61,7 +62,7 @@ export const NAV: Record<Role, NavGroup[]> = {
       label: 'administration',
       items: [
         { to: '/reports', label: 'reports', icon: BarChart3, keywords: 'export excel pdf analytics ripoti' },
-        { to: '/enquiries', label: 'enquiries', icon: Inbox, keywords: 'contact demo requests website' },
+        { to: '/enquiries', label: 'enquiries', icon: Inbox, keywords: 'contact messages questions website' },
         { to: '/audit-log', label: 'auditLog', icon: History, keywords: 'activity history security' },
         { to: '/school-settings', label: 'schoolSettings', icon: Building2, keywords: 'school name logo currency' },
       ],

@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, FlaskConical, GraduationCap, ImageUp, Save, Trash2 } from 'lucide-react';
+import { Building2, GraduationCap, ImageUp, Save, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Language, SchoolSettings, SchoolSettingsInput } from '../../../shared/types';
 import { useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
-import { Alert, Button, Card, CardHeader, CardSkeleton, ErrorState, Field, Input, PageHeader, Select, Textarea } from '../components/ui';
+import { Button, Card, CardHeader, CardSkeleton, ErrorState, Field, Input, PageHeader, Select, Textarea } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { levelName, money } from '../lib/format';
@@ -28,8 +28,6 @@ const M = {
     upload: 'Upload logo', replace: 'Replace logo', remove: 'Remove logo', removeTitle: 'Remove the school logo?',
     removeMsg: 'Report cards and receipts will show the default icon instead.', logoSaved: 'Logo updated', logoRemoved: 'Logo removed',
     badType: 'Choose a PNG, JPEG, WebP or SVG image', tooBig: 'The logo must be smaller than 2 MB', noLogo: 'No logo yet',
-    demoTitle: 'This school is running on demo data',
-    demoBody: 'The students, staff, marks and payments here are invented for demonstrations. To start a real school, set up a fresh database and run the seed with SEED_MODE=admin-only (see the README), which creates only your administrator account.',
   },
   sw: {
     desc: 'Jina la shule, mawasiliano, sarafu na jinsi madarasa yanavyoitwa. Haya huonekana kwenye ripoti za matokeo, stakabadhi na tovuti.',
@@ -44,8 +42,6 @@ const M = {
     upload: 'Pakia nembo', replace: 'Badilisha nembo', remove: 'Ondoa nembo', removeTitle: 'Ondoa nembo ya shule?',
     removeMsg: 'Ripoti za matokeo na stakabadhi zitaonyesha alama ya kawaida badala yake.', logoSaved: 'Nembo imesasishwa', logoRemoved: 'Nembo imeondolewa',
     badType: 'Chagua picha ya PNG, JPEG, WebP au SVG', tooBig: 'Nembo lazima iwe chini ya MB 2', noLogo: 'Bado hakuna nembo',
-    demoTitle: 'Shule hii inatumia data ya majaribio',
-    demoBody: 'Wanafunzi, wafanyakazi, alama na malipo hapa ni ya kubuni kwa ajili ya maonyesho. Kuanzisha shule halisi, andaa hifadhidata mpya na uendeshe seed ukitumia SEED_MODE=admin-only (angalia README), ambayo huunda akaunti ya msimamizi pekee.',
   },
 };
 
@@ -74,11 +70,6 @@ export function SchoolSettingsPage() {
         <ErrorState error={q.error} onRetry={q.refetch} />
       ) : (
         <>
-          {q.data.isDemo && (
-            <div className="mb-3">
-              <Alert tone="warning" icon={<FlaskConical size={20} />} title={t('demoTitle')}>{t('demoBody')}</Alert>
-            </div>
-          )}
           <div className="grid grid-main" style={{ alignItems: 'start' }}>
             <SettingsForm settings={q.data} />
             <LogoCard settings={q.data} />

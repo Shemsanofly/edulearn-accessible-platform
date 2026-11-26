@@ -1,4 +1,4 @@
-import { formatShortDate, percent } from '../lib/format';
+import { formatDate, formatShortDate, percent } from '../lib/format';
 
 /** Simple accessible column chart; values are 0–100 percentages unless `max` is given. */
 export function ColumnChart({ data, max = 100, color = 'var(--primary)', label, format = (v) => percent(v) }: {
@@ -31,7 +31,7 @@ export function TrendChart({ data }: { data: { date: string; rate: number | null
       max={100 - floor}
       format={(v) => percent(v + floor, 1)}
       data={data.map((d) => ({
-        label: new Date(`${d.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'narrow' }),
+        label: formatDate(d.date, { weekday: 'narrow' }),
         title: formatShortDate(d.date),
         value: d.rate === null ? null : Math.max(0, d.rate - floor),
       }))}

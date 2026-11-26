@@ -1,18 +1,20 @@
 import { Router, type Request } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import crypto from 'node:crypto';
-import nodemailer from 'nodemailer';
 import { z } from 'zod';
-import type { Notifications, SessionUser } from '../../../shared/types.js';
+import type { InvitationDetails, InvitationLookup, Notifications, Role, SessionUser } from '../../../shared/types.js';
 import { config } from '../config.js';
 import { query, queryOne, transaction } from '../db/pool.js';
+import { createUser, nextCode } from '../lib/accounts.js';
 import { audit } from '../lib/audit.js';
+import { sendMail } from '../lib/mail.js';
 import { HttpError, parse } from '../lib/http.js';
 import { notifyWhere } from '../lib/notify.js';
 import { hashPassword, verifyPassword } from '../lib/passwords.js';
 import { phone } from '../lib/phone.js';
 import { loadSettings } from '../lib/settings.js';
-import { email, password } from '../lib/validators.js';
+import { email, name, password } from '../lib/validators.js';
+import { hashInviteToken, INVITATION_SELECT } from './invitations.js';
 import { clearSession, issueSession, me, requireAuth, SESSION_COOKIE, SESSION_USER_SQL } from '../middleware/auth.js';
 
 export const authRouter = Router();
@@ -97,7 +99,7 @@ authRouter.patch('/profile', requireAuth, async (req, res) => {
       preferences: z
         .object({
           theme: z.enum(['light', 'dark', 'system']).optional(),
-          accent: z.enum(['navy', 'indigo', 'ocean', 'forest', 'sunset', 'grape', 'rose']).optional(),
+          accent: z.enum(['purple', 'navy', 'indigo', 'ocean', 'forest', 'sunset', 'grape', 'rose']).optional(),
           language: z.enum(['en', 'sw']).optional(),
           fontScale: z.number().min(0.875).max(1.5).optional(),
           highContrast: z.boolean().optional(),
@@ -147,25 +149,16 @@ const RESET_MINUTES = 30;
 const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
 
 async function sendResetEmail(to: string, name: string, link: string) {
-  if (!config.smtp) return false;
   const school = await loadSettings();
-  const transport = nodemailer.createTransport({
-    host: config.smtp.host,
-    port: config.smtp.port,
-    secure: config.smtp.port === 465,
-    auth: config.smtp.user ? { user: config.smtp.user, pass: config.smtp.pass } : undefined,
-  });
-  await transport.sendMail({
-    from: config.smtp.from,
+  return sendMail(
     to,
-    subject: `${school.name}: reset your password`,
-    text: `Hello ${name},\n\nUse this link to choose a new password. It works once and expires in ${RESET_MINUTES} minutes:\n\n${link}\n\nIf you didn't ask for this, you can ignore this email.\n\n${school.name}`,
-  });
-  return true;
+    `${school.name}: reset your password`,
+    `Hello ${name},\n\nUse this link to choose a new password. It works once and expires in ${RESET_MINUTES} minutes:\n\n${link}\n\nIf you didn't ask for this, you can ignore this email.\n\n${school.name}`,
+  );
 }
 
 const resetLink = (req: Request, token: string) => {
-  const origin = req.get('origin') ?? config.appUrl;
+  const origin = config.appUrlConfigured ? config.appUrl : (req.get('origin') ?? config.appUrl);
   return `${origin}/reset-password?token=${token}`;
 };
 
@@ -231,4 +224,102 @@ authRouter.post('/reset-password', resetLimiter, async (req, res) => {
     await audit(req, { action: 'reset_password', entity: 'user', entityId: reset.userId, summary: 'Password reset with an emailed link' }, db);
   });
   res.status(204).end();
+});
+
+// ---------------------------------------------------------------------------
+// Registration by invitation
+// ---------------------------------------------------------------------------
+const registerLimiter = limiter(15, 'Too many attempts. Please wait a few minutes and try again.');
+
+interface OpenInvitation {
+  id: number;
+  email: string;
+  role: Role;
+  firstName: string;
+  lastName: string;
+  details: InvitationDetails;
+  status: string;
+  expiresAt: string;
+  detailSummary: string | null;
+}
+
+const INVALID_LINK = 'This invitation link is not valid. It may have been used already, cancelled, or replaced by a newer one.';
+
+async function findInvitation(token: string, db?: Parameters<typeof queryOne>[2]) {
+  return queryOne<OpenInvitation>(`${INVITATION_SELECT} WHERE i.token_hash = $1`, [hashInviteToken(token)], db);
+}
+
+/** Lets the registration page show who the invitation is for, before any account exists. */
+authRouter.get('/invitation', registerLimiter, async (req, res) => {
+  const token = String(req.query.token ?? '');
+  if (token.length < 20 || token.length > 200) throw new HttpError(404, INVALID_LINK);
+  const inv = await findInvitation(token);
+  if (!inv || inv.status === 'revoked' || inv.status === 'accepted') throw new HttpError(404, INVALID_LINK);
+  if (inv.status === 'expired') throw new HttpError(410, 'This invitation has expired. Ask the school office to send you a new one.');
+  const school = await loadSettings();
+  const lookup: InvitationLookup = {
+    email: inv.email, role: inv.role, firstName: inv.firstName, lastName: inv.lastName,
+    schoolName: school.name, expiresAt: inv.expiresAt, detailSummary: inv.detailSummary,
+  };
+  res.json(lookup);
+});
+
+/**
+ * Create the account an invitation describes. The role, email, class and children come from the
+ * invitation only — anything else in the request body is ignored.
+ */
+authRouter.post('/register', registerLimiter, async (req, res) => {
+  const b = parse(
+    z.object({
+      token: z.string().min(20, 'This invitation link is not complete').max(200),
+      firstName: name,
+      lastName: name,
+      phone,
+      password,
+    }),
+    req.body,
+  );
+  const userId = await transaction(async (db) => {
+    const inv = await findInvitation(b.token, db);
+    if (!inv || inv.status === 'revoked' || inv.status === 'accepted') throw new HttpError(404, INVALID_LINK);
+    if (inv.status === 'expired') throw new HttpError(410, 'This invitation has expired. Ask the school office to send you a new one.');
+    // Lock the invitation row so the same link can't create two accounts at once.
+    const locked = await queryOne('SELECT 1 FROM invitations WHERE id = $1 AND accepted_at IS NULL AND revoked_at IS NULL FOR UPDATE', [inv.id], db);
+    if (!locked) throw new HttpError(404, INVALID_LINK);
+    if (await queryOne('SELECT 1 FROM users WHERE email = $1', [inv.email], db)) {
+      throw new HttpError(409, 'An account with this email address already exists. Sign in instead, or use "Forgot password".');
+    }
+    const account = await createUser(db, {
+      email: inv.email, password: b.password, role: inv.role, firstName: b.firstName, lastName: b.lastName, phone: b.phone,
+    });
+    const d = inv.details ?? {};
+    if (inv.role === 'teacher') {
+      await query(
+        'INSERT INTO teachers (user_id, employee_no, specialization) VALUES ($1, $2, $3)',
+        [account.id, await nextCode(db, 'teachers', 'employee_no', 'TCH'), d.specialization ?? null],
+        db,
+      );
+    } else if (inv.role === 'student') {
+      await query(
+        'INSERT INTO students (user_id, admission_no, class_id) VALUES ($1, $2, $3)',
+        [account.id, await nextCode(db, 'students', 'admission_no', 'STU'), d.classId ?? null],
+        db,
+      );
+    } else if (inv.role === 'parent') {
+      for (const child of d.children ?? []) {
+        await query(
+          `INSERT INTO guardians (parent_id, student_id, relationship)
+           SELECT $1, $2, $3 WHERE EXISTS (SELECT 1 FROM students WHERE user_id = $2) ON CONFLICT DO NOTHING`,
+          [account.id, child.studentId, child.relationship || 'guardian'],
+          db,
+        );
+      }
+    }
+    await query('UPDATE invitations SET accepted_at = now(), accepted_user_id = $2 WHERE id = $1', [inv.id, account.id], db);
+    req.user = { id: account.id, email: inv.email, role: inv.role, firstName: b.firstName, lastName: b.lastName, phone: b.phone, preferences: {}, photoUrl: null };
+    await audit(req, { action: 'create', entity: 'user', entityId: account.id, summary: `${b.firstName} ${b.lastName} created their ${inv.role} account from an invitation` }, db);
+    return account.id;
+  });
+  issueSession(res, userId, 1);
+  res.status(201).json({ user: await queryOne<SessionUser>(SESSION_USER_SQL, [userId]) });
 });

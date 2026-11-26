@@ -15,6 +15,8 @@ export const config = {
   sessionDays: Number(env.SESSION_DAYS ?? 7),
   /** Public address of the app, used in password-reset emails. */
   appUrl: env.APP_URL ?? 'http://localhost:5173',
+  /** True when APP_URL was set explicitly; links in emails then always use it rather than the request's Origin. */
+  appUrlConfigured: !!env.APP_URL,
   /** Optional SMTP settings for password-reset emails. Without them, resets go through the school office. */
   smtp: env.SMTP_HOST
     ? {

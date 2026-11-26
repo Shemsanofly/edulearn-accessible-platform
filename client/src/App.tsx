@@ -14,6 +14,7 @@ const LandingPage = page(() => import('./pages/Landing'), 'LandingPage');
 const LoginPage = page(() => import('./pages/Login'), 'LoginPage');
 const ForgotPasswordPage = page(() => import('./pages/ForgotPassword'), 'ForgotPasswordPage');
 const ResetPasswordPage = page(() => import('./pages/ForgotPassword'), 'ResetPasswordPage');
+const RegisterPage = page(() => import('./pages/Register'), 'RegisterPage');
 
 // Everyone signed in
 const DashboardPage = page(() => import('./pages/Dashboard'), 'DashboardPage');
@@ -50,6 +51,7 @@ const ParentsPage = page(() => import('./pages/ParentsPage'), 'ParentsPage');
 const ClassesPage = page(() => import('./pages/ClassesPage'), 'ClassesPage');
 const AcademicsPage = page(() => import('./pages/AcademicsPage'), 'AcademicsPage');
 const EnquiriesPage = page(() => import('./pages/EnquiriesPage'), 'EnquiriesPage');
+const InvitationsPage = page(() => import('./pages/InvitationsPage'), 'InvitationsPage');
 const AuditLogPage = page(() => import('./pages/AuditLogPage'), 'AuditLogPage');
 const SchoolSettingsPage = page(() => import('./pages/SchoolSettingsPage'), 'SchoolSettingsPage');
 
@@ -84,6 +86,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           element={
             <RequireAuth>
@@ -125,6 +128,7 @@ export function App() {
                   {/* Administrators */}
                   <Route path="teachers" element={<Only roles={ADMIN}><TeachersPage /></Only>} />
                   <Route path="parents" element={<Only roles={ADMIN}><ParentsPage /></Only>} />
+                  <Route path="invitations" element={<Only roles={ADMIN}><InvitationsPage /></Only>} />
                   <Route path="classes" element={<Only roles={ADMIN}><ClassesPage /></Only>} />
                   <Route path="academics" element={<Only roles={ADMIN}><AcademicsPage /></Only>} />
                   <Route path="enquiries" element={<Only roles={ADMIN}><EnquiriesPage /></Only>} />

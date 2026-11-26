@@ -1,10 +1,11 @@
 import { ArrowLeft, CheckCircle2, KeyRound, MailCheck, Send } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Alert, Button, ButtonLink, Field, Input } from '../components/ui';
+import { AuthLayout } from '../components/AuthLayout';
+import { Alert, Button, ButtonLink, Field, Input, PasswordInput } from '../components/ui';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { useT } from '../lib/i18n';
-import { AuthShell } from './Login';
+import { looksLikeEmail } from './Login';
 
 const M = {
   en: {
@@ -32,6 +33,8 @@ const M = {
     expired: 'This reset link is invalid or has expired. Please request a new one.',
     requestNew: 'Request a new link',
     resetFailed: 'Couldn’t change your password',
+    showPw: 'Show password',
+    hidePw: 'Hide password',
   },
   sw: {
     forgotTitle: 'Umesahau nenosiri lako?',
@@ -58,10 +61,11 @@ const M = {
     expired: 'Kiungo hiki si sahihi au muda wake umekwisha. Tafadhali omba kingine.',
     requestNew: 'Omba kiungo kipya',
     resetFailed: 'Imeshindikana kubadili nenosiri',
+    showPw: 'Onyesha nenosiri',
+    hidePw: 'Ficha nenosiri',
   },
 };
 
-const looksLikeEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 function BackToLogin({ label }: { label: string }) {
   return (
@@ -100,13 +104,13 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <AuthShell>
+    <AuthLayout>
       {sent ? (
         <div role="status">
           <span className="empty-icon" style={{ margin: '0 0 16px', background: 'var(--success-soft)', color: 'var(--success)' }} aria-hidden>
             <MailCheck size={28} />
           </span>
-          <h1 style={{ fontSize: '1.6rem' }}>{t('sentTitle')}</h1>
+          <h1>{t('sentTitle')}</h1>
           <p className="muted" style={{ marginTop: 8 }}>
             {sent.delivery === 'office' ? t('sentOffice', { email: sent.email }) : t('sentEmail', { email: sent.email })}
           </p>
@@ -114,19 +118,19 @@ export function ForgotPasswordPage() {
         </div>
       ) : (
         <>
-          <h1 style={{ fontSize: '1.7rem' }}>{t('forgotTitle')}</h1>
-          <p className="muted" style={{ margin: '6px 0 24px' }}>{t('forgotText')}</p>
+          <h1>{t('forgotTitle')}</h1>
+          <p className="lede">{t('forgotText')}</p>
           <form onSubmit={submit} noValidate className="stack">
             {error && <Alert tone="danger" title={t('failed')}>{error}</Alert>}
             <Field label={t('email')} error={fieldError} required>
-              <Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@school.ac.tz" autoFocus />
+              <Input type="email" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
             </Field>
             <Button type="submit" variant="primary" size="lg" block loading={busy} icon={<Send size={18} />}>{t('send')}</Button>
           </form>
           <BackToLogin label={t('backLogin')} />
         </>
       )}
-    </AuthShell>
+    </AuthLayout>
   );
 }
 
@@ -164,8 +168,8 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <AuthShell>
-        <h1 style={{ fontSize: '1.7rem' }}>{t('resetTitle')}</h1>
+      <AuthLayout>
+        <h1>{t('resetTitle')}</h1>
         <div className="mt-2">
           <Alert tone="danger">{t('noToken')}</Alert>
         </div>
@@ -173,29 +177,29 @@ export function ResetPasswordPage() {
           <ButtonLink to="/forgot-password" variant="primary" icon={<KeyRound size={17} />}>{t('requestNew')}</ButtonLink>
         </div>
         <BackToLogin label={t('backLogin')} />
-      </AuthShell>
+      </AuthLayout>
     );
   }
 
   if (done) {
     return (
-      <AuthShell>
+      <AuthLayout>
         <div role="status">
           <span className="empty-icon" style={{ margin: '0 0 16px', background: 'var(--success-soft)', color: 'var(--success)' }} aria-hidden>
             <CheckCircle2 size={28} />
           </span>
-          <h1 style={{ fontSize: '1.6rem' }}>{t('doneTitle')}</h1>
+          <h1>{t('doneTitle')}</h1>
           <p className="muted" style={{ margin: '8px 0 20px' }}>{t('doneText')}</p>
           <ButtonLink to="/login" variant="primary">{t('goLogin')}</ButtonLink>
         </div>
-      </AuthShell>
+      </AuthLayout>
     );
   }
 
   return (
-    <AuthShell>
-      <h1 style={{ fontSize: '1.7rem' }}>{t('resetTitle')}</h1>
-      <p className="muted" style={{ margin: '6px 0 24px' }}>{t('resetText')}</p>
+    <AuthLayout>
+      <h1>{t('resetTitle')}</h1>
+      <p className="lede">{t('resetText')}</p>
       <form onSubmit={submit} noValidate className="stack">
         {error && (
           <Alert tone="danger" title={t('resetFailed')}>
@@ -203,14 +207,14 @@ export function ResetPasswordPage() {
           </Alert>
         )}
         <Field label={t('newPw')} error={errors.password} required>
-          <Input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+          <PasswordInput autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} showLabel={t('showPw')} hideLabel={t('hidePw')} autoFocus />
         </Field>
         <Field label={t('confirmPw')} error={errors.confirm} required>
-          <Input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          <PasswordInput autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} showLabel={t('showPw')} hideLabel={t('hidePw')} />
         </Field>
         <Button type="submit" variant="primary" size="lg" block loading={busy} icon={<KeyRound size={18} />}>{t('savePw')}</Button>
       </form>
       <BackToLogin label={t('backLogin')} />
-    </AuthShell>
+    </AuthLayout>
   );
 }

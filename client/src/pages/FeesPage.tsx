@@ -14,7 +14,7 @@ import { Modal, useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
   Alert, Badge, Button, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
-  ProgressBar, SearchInput, Segmented, Select, StatCard, Tabs, Textarea, Toggle, useDebounced,
+  ProgressBar, SearchInput, Segmented, Select, SortHeader, StatCard, Tabs, Textarea, Toggle, useDebounced, useSort,
 } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { useAuth, useUser } from '../lib/auth';
@@ -253,7 +253,8 @@ function InvoicesTab({ classes, onCreate }: { classes: ClassListItem[]; onCreate
   const [openId, setOpenId] = useState<number | null>(null);
   const debounced = useDebounced(search);
 
-  useEffect(() => setPage(1), [status, classId, debounced, studentId]);
+  const sort = useSort('due', 'desc');
+  useEffect(() => setPage(1), [status, classId, debounced, studentId, sort.sort, sort.dir]);
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);
@@ -263,7 +264,7 @@ function InvoicesTab({ classes, onCreate }: { classes: ClassListItem[]; onCreate
   };
 
   const list = useQuery({
-    queryKey: ['fees', 'invoices', { status, classId, search: debounced, page, studentId }],
+    queryKey: ['fees', 'invoices', { status, classId, search: debounced, page, studentId, ...sort.params }],
     queryFn: () =>
       api.get<Paginated<Invoice>>('/fees/invoices', {
         studentId: studentId || undefined,
@@ -272,6 +273,7 @@ function InvoicesTab({ classes, onCreate }: { classes: ClassListItem[]; onCreate
         search: debounced,
         page,
         pageSize: 15,
+        ...sort.params,
       }),
     placeholderData: (prev) => prev,
   });
@@ -320,12 +322,12 @@ function InvoicesTab({ classes, onCreate }: { classes: ClassListItem[]; onCreate
           <table className="table">
             <thead>
               <tr>
-                <th scope="col">{t('student')}</th>
-                <th scope="col">{t('invoice')}</th>
-                <th scope="col">{t('due')}</th>
-                <th scope="col" className="num">{t('amount')}</th>
-                <th scope="col" className="num">{t('balance')}</th>
-                <th scope="col">{t('status')}</th>
+                <SortHeader label={t('student')} field="student" state={sort} />
+                <SortHeader label={t('invoice')} field="invoice" state={sort} />
+                <SortHeader label={t('due')} field="due" state={sort} />
+                <SortHeader label={t('amount')} field="amount" state={sort} numeric />
+                <SortHeader label={t('balance')} field="balance" state={sort} numeric />
+                <SortHeader label={t('status')} field="status" state={sort} />
               </tr>
             </thead>
             <tbody>

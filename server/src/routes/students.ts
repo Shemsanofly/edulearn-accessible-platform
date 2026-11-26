@@ -9,7 +9,7 @@ import { assertCanViewStudent } from '../lib/access.js';
 import { createUser, nextCode, updateUser } from '../lib/accounts.js';
 import { audit } from '../lib/audit.js';
 import { phone } from '../lib/phone.js';
-import { intParam, notFound, pageParams, parse, provided } from '../lib/http.js';
+import { intParam, notFound, orderBy, pageParams, parse, provided } from '../lib/http.js';
 import { ASSESSMENT_SELECT, INVOICE_SELECT, STUDENT_SELECT } from '../lib/sql.js';
 import { email, id, isoDate, name, optionalText, password } from '../lib/validators.js';
 import { me, requireRole } from '../middleware/auth.js';
@@ -58,7 +58,9 @@ studentsRouter.get('/', requireRole('admin', 'teacher'), async (req, res) => {
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const [items, count] = await Promise.all([
     query<StudentListItem>(
-      `${STUDENT_SELECT} ${whereSql} ORDER BY u.last_name, u.first_name LIMIT ${pageSize} OFFSET ${offset}`,
+      `${STUDENT_SELECT} ${whereSql} ${orderBy(req.query, {
+        name: 'u.last_name', firstName: 'u.first_name', admission: 's.admission_no', class: 'c.grade_level, c.name', dob: 's.date_of_birth', status: 'u.is_active',
+      }, 'u.last_name, u.first_name', 'u.last_name, u.first_name')} LIMIT ${pageSize} OFFSET ${offset}`,
       params,
     ),
     queryOne<{ total: number }>(

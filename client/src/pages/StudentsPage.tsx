@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Camera, Download, GraduationCap, KeyRound, Pencil, Plus, Power, PowerOff, Trash, UserPlus, X } from 'lucide-react';
+import { Camera, Download, GraduationCap, KeyRound, MailPlus, Pencil, Plus, Power, PowerOff, Trash, UserPlus, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type {
@@ -8,8 +8,8 @@ import type {
 import { useConfirm, Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
-  Avatar, Badge, Button, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
-  SearchInput, Select, Textarea, useDebounced,
+  Avatar, Badge, Button, ButtonLink, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
+  SearchInput, Select, SortHeader, Textarea, useDebounced, useSort,
 } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { useSchool, useUser } from '../lib/auth';
@@ -595,7 +595,8 @@ export function StudentsPage() {
   const actions = useAccountActions([['students']]);
   const toast = useToast();
 
-  useEffect(() => setPage(1), [debounced, classId, status]);
+  const sort = useSort('name');
+  useEffect(() => setPage(1), [debounced, classId, status, sort.sort, sort.dir]);
 
   useEffect(() => {
     if (isAdmin && params.get('new') === '1') {
@@ -619,8 +620,8 @@ export function StudentsPage() {
   });
 
   const query = useQuery({
-    queryKey: ['students', { search: debounced, classId, status, page }],
-    queryFn: () => api.get<Paginated<StudentListItem>>('/students', { search: debounced, classId, status, page, pageSize: 20 }),
+    queryKey: ['students', { search: debounced, classId, status, page, ...sort.params }],
+    queryFn: () => api.get<Paginated<StudentListItem>>('/students', { search: debounced, classId, status, page, pageSize: 20, ...sort.params }),
     placeholderData: keepPreviousData,
   });
 
@@ -639,7 +640,7 @@ export function StudentsPage() {
     try {
       const all: StudentListItem[] = [];
       for (let p = 1; p <= 10; p++) {
-        const res = await api.get<Paginated<StudentListItem>>('/students', { search: debounced, classId, status, page: p, pageSize: 100 });
+        const res = await api.get<Paginated<StudentListItem>>('/students', { search: debounced, classId, status, page: p, pageSize: 100, ...sort.params });
         all.push(...res.items);
         if (all.length >= res.total || res.items.length === 0) break;
       }
@@ -674,6 +675,7 @@ export function StudentsPage() {
             <Button icon={<Download size={17} />} onClick={exportCsv} loading={exporting} disabled={!data?.total}>
               {tc('exportCsv')}
             </Button>
+            {isAdmin && <ButtonLink to="/invitations?new=1&as=student" icon={<MailPlus size={17} />}>{tc('inviteSomeone')}</ButtonLink>}
             {isAdmin && (
               <Button variant="primary" icon={<UserPlus size={18} />} onClick={() => { setEditing(null); setFormOpen(true); }}>
                 {t('enrol')}
@@ -723,12 +725,12 @@ export function StudentsPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th scope="col">{t('student')}</th>
-                    <th scope="col">{t('admissionNo')}</th>
-                    <th scope="col">{t('classCol')}</th>
-                    <th scope="col">{t('dob')}</th>
+                    <SortHeader label={t('student')} field="name" state={sort} />
+                    <SortHeader label={t('admissionNo')} field="admission" state={sort} />
+                    <SortHeader label={t('classCol')} field="class" state={sort} />
+                    <SortHeader label={t('dob')} field="dob" state={sort} numeric />
                     <th scope="col">{t('support')}</th>
-                    <th scope="col">{t('status')}</th>
+                    {isAdmin ? <SortHeader label={t('status')} field="status" state={sort} /> : <th scope="col">{t('status')}</th>}
                     {isAdmin && <th scope="col" className="actions"><span className="sr-only">{t('actions')}</span></th>}
                   </tr>
                 </thead>

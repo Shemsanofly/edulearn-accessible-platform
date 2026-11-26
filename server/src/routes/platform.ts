@@ -38,7 +38,6 @@ const contactLimiter = rateLimit({
 publicRouter.post('/contact', contactLimiter, async (req, res) => {
   const b = parse(
     z.object({
-      kind: z.enum(['contact', 'demo']).default('contact'),
       fullName: z.string().trim().min(2, 'Enter your full name').max(120),
       schoolName: optionalText(160),
       email,
@@ -52,11 +51,11 @@ publicRouter.post('/contact', contactLimiter, async (req, res) => {
   const row = await queryOne<{ id: number }>(
     `INSERT INTO contact_requests (kind, full_name, school_name, email, phone, message)
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-    [b.kind, b.fullName, b.schoolName, b.email, b.phone, b.message],
+    ['contact', b.fullName, b.schoolName, b.email, b.phone, b.message],
   );
   await notifyWhere("SELECT id FROM users WHERE role = 'admin' AND is_active", [], {
     type: 'system',
-    title: b.kind === 'demo' ? `Demo request from ${b.fullName}` : `New enquiry from ${b.fullName}`,
+    title: `New enquiry from ${b.fullName}`,
     body: b.schoolName ? `${b.schoolName}: ${b.message.slice(0, 140)}` : b.message.slice(0, 160),
     link: '/enquiries',
   });

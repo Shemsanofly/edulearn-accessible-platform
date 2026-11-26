@@ -27,7 +27,8 @@ describe('school settings & public site', () => {
   it('exposes school branding publicly and flags demo data', async () => {
     const res = await request(app).get('/api/school');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ currency: 'TZS', levelLabel: 'Form', isDemo: true });
+    expect(res.body).toMatchObject({ currency: 'TZS', levelLabel: 'Form' });
+    expect(res.body.isDemo).toBeUndefined();
   });
 
   it('lets only admins change settings, and records it in the audit log', async () => {
@@ -39,13 +40,14 @@ describe('school settings & public site', () => {
     expect((await teacher.get('/api/audit-logs')).status).toBe(403);
   });
 
-  it('accepts contact and demo requests from the website and notifies admins', async () => {
+  it('accepts contact enquiries from the website and notifies admins', async () => {
     const res = await request(app).post('/api/contact').send({
       kind: 'demo', fullName: 'Test Person', schoolName: 'Test School', email: 'test@example.com', phone: '0655 111 222', message: 'Please show us the system',
     });
     expect(res.status).toBe(201);
     const list = await admin.get('/api/enquiries?status=new');
-    expect(list.body.items.some((e: { fullName: string; phone: string }) => e.fullName === 'Test Person' && e.phone === '+255 655 111 222')).toBe(true);
+    const mine = list.body.items.find((e: { fullName: string }) => e.fullName === 'Test Person');
+    expect(mine).toMatchObject({ phone: '+255 655 111 222', kind: 'contact' }); // demo requests are no longer offered
     // The hidden honeypot field blocks bots.
     const bot = await request(app).post('/api/contact').send({ fullName: 'Bot', email: 'b@example.com', message: 'spam spam', website: 'http://x' });
     expect(bot.status).toBe(400);

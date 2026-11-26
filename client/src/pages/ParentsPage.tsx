@@ -1,20 +1,20 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Link2, Pencil, Power, PowerOff, Trash, UserPlus, Users, X } from 'lucide-react';
+import { KeyRound, Link2, MailPlus, Pencil, Power, PowerOff, Trash, UserPlus, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { CreatedAccount, Paginated, ParentInput, ParentListItem, StudentListItem } from '../../../shared/types';
 import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
-  Alert, Avatar, Badge, Button, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
-  SearchInput, Select, Spinner, useDebounced,
+  Alert, Avatar, Badge, Button, ButtonLink, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
+  SearchInput, Select, SortHeader, Spinner, useDebounced, useSort,
 } from '../components/ui';
 import { api } from '../lib/api';
 import { fullName } from '../lib/format';
 import { useI18n, useT } from '../lib/i18n';
 import { apiFieldErrors, isEmail, RowAction, useAccountActions } from './StudentsPage';
 
-const RELATIONSHIPS = ['mother', 'father', 'guardian', 'grandparent', 'carer', 'other'] as const;
+export const RELATIONSHIPS = ['mother', 'father', 'guardian', 'grandparent', 'carer', 'other'] as const;
 
 const M = {
   en: {
@@ -66,7 +66,7 @@ const M = {
 type Msg = keyof typeof M.en;
 const relLabel = (r: string, t: (k: Msg) => string) => ((RELATIONSHIPS as readonly string[]).includes(r) ? t(r as Msg) : r);
 
-interface LinkedChild {
+export interface LinkedChild {
   studentId: number;
   name: string;
   className: string | null;
@@ -86,7 +86,7 @@ interface FormState {
 const blank: FormState = { firstName: '', lastName: '', email: '', phone: '', password: '', children: [] };
 
 /** Search students and link them to the parent being edited. */
-function ChildPicker({ linked, onAdd }: { linked: LinkedChild[]; onAdd: (c: LinkedChild) => void }) {
+export function ChildPicker({ linked, onAdd }: { linked: LinkedChild[]; onAdd: (c: LinkedChild) => void }) {
   const t = useT(M);
   const [q, setQ] = useState('');
   const debounced = useDebounced(q, 250);
@@ -281,11 +281,12 @@ export function ParentsPage() {
   const actions = useAccountActions([['parents']]);
 
   useEffect(() => setSearch(params.get('search') ?? ''), [params]);
-  useEffect(() => setPage(1), [debounced]);
+  const sort = useSort('name');
+  useEffect(() => setPage(1), [debounced, sort.sort, sort.dir]);
 
   const { data, isLoading, error, refetch, isFetching, isPlaceholderData } = useQuery({
-    queryKey: ['parents', { search: debounced, page }],
-    queryFn: () => api.get<Paginated<ParentListItem>>('/parents', { search: debounced, page, pageSize: 20 }),
+    queryKey: ['parents', { search: debounced, page, ...sort.params }],
+    queryFn: () => api.get<Paginated<ParentListItem>>('/parents', { search: debounced, page, pageSize: 20, ...sort.params }),
     placeholderData: keepPreviousData,
   });
 
@@ -299,7 +300,12 @@ export function ParentsPage() {
       <PageHeader
         title={t('title')}
         description={t('desc')}
-        actions={<Button variant="primary" icon={<UserPlus size={18} />} onClick={() => openForm(null)}>{t('add')}</Button>}
+        actions={
+          <>
+            <ButtonLink to="/invitations?new=1&as=parent" icon={<MailPlus size={17} />}>{tc('inviteSomeone')}</ButtonLink>
+            <Button variant="primary" icon={<UserPlus size={18} />} onClick={() => openForm(null)}>{t('add')}</Button>
+          </>
+        }
       />
       <Card>
         <div className="toolbar">
@@ -321,10 +327,10 @@ export function ParentsPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th scope="col">{t('colParent')}</th>
+                    <SortHeader label={t('colParent')} field="name" state={sort} />
                     <th scope="col">{t('colPhone')}</th>
-                    <th scope="col">{t('colChildren')}</th>
-                    <th scope="col">{t('colStatus')}</th>
+                    <SortHeader label={t('colChildren')} field="children" state={sort} />
+                    <SortHeader label={t('colStatus')} field="status" state={sort} />
                     <th scope="col" className="actions"><span className="sr-only">{t('actions')}</span></th>
                   </tr>
                 </thead>

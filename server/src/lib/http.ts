@@ -75,3 +75,15 @@ export function provided<T extends object>(parsed: T, raw: unknown): Partial<T> 
   const r = (raw ?? {}) as object;
   return Object.fromEntries(Object.entries(parsed).filter(([k]) => Object.hasOwn(r, k))) as Partial<T>;
 }
+
+/**
+ * Build a safe ORDER BY from ?sort=key&dir=asc|desc. Only keys in `columns` are accepted, so user
+ * input never reaches SQL directly; anything else falls back to `fallback`.
+ */
+export function orderBy(q: Request['query'], columns: Record<string, string>, fallback: string, tiebreak = ''): string {
+  const key = typeof q.sort === 'string' ? q.sort : '';
+  const column = Object.hasOwn(columns, key) ? columns[key] : null;
+  if (!column) return `ORDER BY ${fallback}`;
+  const dir = q.dir === 'desc' ? 'DESC' : 'ASC';
+  return `ORDER BY ${column} ${dir} NULLS LAST${tiebreak ? `, ${tiebreak}` : ''}`;
+}
