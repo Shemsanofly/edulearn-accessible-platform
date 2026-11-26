@@ -273,7 +273,6 @@ export function ReportCardPage() {
 /** The class teacher's comment: editable by admins and the student's class teacher, read-only for everyone else. */
 function RemarkSection({ card, examId, studentId }: { card: ReportCard; examId: number; studentId: number }) {
   const t = useT(M);
-  const user = useUser();
   const toast = useToast();
   const qc = useQueryClient();
   const [text, setText] = useState(card.remark ?? '');
@@ -281,7 +280,7 @@ function RemarkSection({ card, examId, studentId }: { card: ReportCard; examId: 
 
   // Teachers: only the class teacher may edit. We can't tell from the card who the class teacher is,
   // so teachers try to save and the server decides; admins can always edit.
-  const canEdit = user.role === 'admin' || user.role === 'teacher';
+  const canEdit = card.canEditRemark;
   const save = useMutation({
     mutationFn: () => api.put(`/exams/${examId}/report-cards/${studentId}/remark`, { remark: text.trim() }),
     onSuccess: () => {

@@ -700,6 +700,8 @@ export interface ReportCard {
   attendance: AttendanceSummary;
   remark: string | null;
   bands: GradeBand[];
+  /** Whether the viewer may write the class-teacher remark (admins and the student's class teacher). */
+  canEditRemark: boolean;
 }
 
 export interface ReportCardSummary {

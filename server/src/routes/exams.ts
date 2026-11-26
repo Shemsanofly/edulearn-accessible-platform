@@ -431,7 +431,7 @@ examsRouter.get('/exams/:id/performance', requireRole('admin', 'teacher'), async
   res.json(payload);
 });
 
-async function buildReportCard(examId: number, studentId: number): Promise<ReportCard> {
+async function buildReportCard(examId: number, studentId: number): Promise<Omit<ReportCard, 'canEditRemark'>> {
   const [exam, student, school] = await Promise.all([
     loadExam(examId),
     queryOne<StudentListItem>(`${STUDENT_SELECT} WHERE s.user_id = $1`, [studentId]),
@@ -490,8 +490,14 @@ async function assertCanSeeResults(user: ReturnType<typeof me>, examId: number, 
 examsRouter.get('/exams/:id/report-cards/:studentId', async (req, res) => {
   const examId = intParam(req.params.id);
   const studentId = intParam(req.params.studentId, 'studentId');
-  await assertCanSeeResults(me(req), examId, studentId);
-  res.json(await buildReportCard(examId, studentId));
+  const user = me(req);
+  await assertCanSeeResults(user, examId, studentId);
+  const card = await buildReportCard(examId, studentId);
+  const canEditRemark = user.role === 'admin' || (user.role === 'teacher' && !!(await queryOne(
+    'SELECT 1 FROM students s JOIN classes c ON c.id = s.class_id WHERE s.user_id = $1 AND c.homeroom_teacher_id = $2',
+    [studentId, user.id],
+  )));
+  res.json({ ...card, canEditRemark } satisfies ReportCard);
 });
 
 examsRouter.put('/exams/:id/report-cards/:studentId/remark', requireRole('admin', 'teacher'), async (req, res) => {
