@@ -1,4 +1,4 @@
-import { BellRing, ClipboardCheck, GraduationCap, KeyRound, LockKeyhole, MailCheck, Menu, ShieldCheck, Wallet, X, type LucideIcon } from 'lucide-react';
+import { BellRing, ClipboardCheck, GraduationCap, LockKeyhole, MailCheck, Menu, ShieldCheck, Wallet, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth, useSchool } from '../lib/auth';
@@ -17,11 +17,6 @@ const M = {
     signin1: 'Registers, marks and report cards for your classes',
     signin2: 'Results, attendance and fees for your children',
     signin3: 'Announcements and messages from the school office',
-    registerEyebrow: 'By invitation', registerTitle: 'Join your school', registerTitleEm: 'with the right access.',
-    registerText: 'The school office invites each parent, student and member of staff. Your role is set by the invitation.',
-    register1: 'Open the link from your invitation',
-    register2: 'Check your details and choose a password',
-    register3: 'Sign in any time, on any phone or computer',
     passwordEyebrow: 'Account help', passwordTitle: 'Get back into', passwordTitleEm: 'your account.',
     passwordText: 'Reset links work once and expire after 30 minutes.',
     password1: 'We send a reset link to the email you sign in with',
@@ -38,11 +33,6 @@ const M = {
     signin1: 'Mahudhurio, alama na ripoti za madarasa yako',
     signin2: 'Matokeo, mahudhurio na ada za watoto wako',
     signin3: 'Matangazo na ujumbe kutoka ofisi ya shule',
-    registerEyebrow: 'Kwa mwaliko', registerTitle: 'Jiunge na shule yako', registerTitleEm: 'ukiwa na ruhusa sahihi.',
-    registerText: 'Ofisi ya shule humwalika kila mzazi, mwanafunzi na mfanyakazi. Nafasi yako imewekwa na mwaliko.',
-    register1: 'Fungua kiungo kilicho kwenye mwaliko wako',
-    register2: 'Hakiki taarifa zako na uchague nenosiri',
-    register3: 'Ingia wakati wowote, kwa simu au kompyuta',
     passwordEyebrow: 'Msaada wa akaunti', passwordTitle: 'Rudi kwenye', passwordTitleEm: 'akaunti yako.',
     passwordText: 'Viungo vya kubadili nenosiri vinatumika mara moja na huisha baada ya dakika 30.',
     password1: 'Tunatuma kiungo kwa barua pepe unayoingia nayo',
@@ -52,10 +42,9 @@ const M = {
 };
 type Key = keyof typeof M.en;
 
-export type AuthStory = 'signin' | 'register' | 'password';
+export type AuthStory = 'signin' | 'password';
 const STORIES: Record<AuthStory, { icons: [LucideIcon, LucideIcon, LucideIcon] }> = {
   signin: { icons: [ClipboardCheck, Wallet, BellRing] },
-  register: { icons: [MailCheck, KeyRound, ShieldCheck] },
   password: { icons: [MailCheck, ShieldCheck, LockKeyhole] },
 };
 
@@ -114,7 +103,7 @@ export function SiteHeader({ links, onSection }: { links?: SiteLink[]; onSection
             <Link to="/" className="btn btn-sm btn-ink">{t('goDashboard')}</Link>
           ) : (
             <>
-              {pathname !== '/login' && <NavLink to="/login" className="btn btn-sm btn-ghost site-hide-sm">{tc('signIn')}</NavLink>}
+              {pathname !== '/login' && pathname !== '/register' && <NavLink to="/login" className="btn btn-sm btn-ghost site-hide-sm">{tc('signIn')}</NavLink>}
               <Link to={pathname === '/register' ? '/login' : '/register'} className="btn btn-sm btn-ink">
                 {pathname === '/register' ? tc('signIn') : tc('createAccount')}
               </Link>
@@ -193,8 +182,21 @@ export function PublicFooter({ onSection }: { onSection?: (id: string) => (e: Re
  * Sign-in, registration and password pages: a dark story panel explaining what the page is for, beside the form.
  * On tablets and phones the story panel is dropped so the form is the first thing on screen.
  */
-export function AuthLayout({ children, story = 'signin' }: { children: ReactNode; story?: AuthStory }) {
+export function AuthLayout({ children, story = 'signin' }: { children: ReactNode; story?: AuthStory | false }) {
   const t = useT(M);
+  if (!story) {
+    // Compact: just the form, centred.
+    return (
+      <div className="public">
+        <a href="#auth-main" className="skip-link">Skip to main content</a>
+        <SiteHeader />
+        <main id="auth-main" className="auth-stage">
+          <div className="auth-panel compact"><div className="auth-form">{children}</div></div>
+        </main>
+        <PublicFooter />
+      </div>
+    );
+  }
   const [a, b, c] = STORIES[story].icons;
   const k = (s: string) => `${story}${s}` as Key;
   return (

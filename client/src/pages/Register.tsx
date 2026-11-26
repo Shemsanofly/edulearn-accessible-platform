@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CheckCircle2, Clock, Link2Off, MailQuestion, UserPlus } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Link2Off } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import type { InvitationLookup, RegisterInput, SessionUser } from '../../../shared/types';
@@ -12,75 +12,60 @@ import { useI18n, useT } from '../lib/i18n';
 
 const M = {
   en: {
-    title: 'Create your account',
-    inviteOnlyText: 'EduLearn accounts are created by invitation, so each person joins the school with the right access. Open the link in your invitation email, or paste it below.',
-    linkLabel: 'Invitation link or code',
-    linkHint: 'It looks like https://…/register?token=… or a long code.',
-    errLink: 'Paste the full link or code from your invitation',
+    title: 'Create account',
+    pasteLede: 'Paste the link from your invitation.',
+    linkLabel: 'Invitation link',
+    errLink: 'Paste the full invitation link',
     continue: 'Continue',
-    noInviteTitle: 'Don’t have an invitation?',
-    noInviteParents: 'Parents and students: ask the school office to invite you. They’ll need the email address you want to use.',
-    noInviteStaff: 'Teachers and staff: ask a school administrator to send you an invitation.',
-    noInviteOther: 'Interested in the school? Send us a message and the office will reply.',
-    contact: 'Contact the school',
-    haveAccount: 'Already have an account?',
+    noInvite: 'No invitation?',
+    askOffice: 'Ask the school office',
+    haveAccount: 'Have an account?',
     checking: 'Checking your invitation…',
-    invalidTitle: 'This invitation can’t be used',
-    expiredTitle: 'This invitation has expired',
+    invalidTitle: 'Link not valid',
+    expiredTitle: 'Link expired',
     tryAgain: 'Try another link',
-    youreInvited: 'You’ve been invited to join {school} as {role}.',
-    expires: 'This invitation expires on {date}.',
-    email: 'Email address',
-    emailHint: 'Set by the school. You’ll use it to sign in.',
+    joining: 'Joining {school} as {role}.',
+    email: 'Email',
     firstName: 'First name',
     lastName: 'Last name',
-    phone: 'Phone number',
-    phoneHint: 'Optional — for example 0777 123 456.',
+    phone: 'Phone (optional)',
     password: 'Password',
-    passwordHint: 'At least 8 characters. Avoid a password you use elsewhere.',
+    passwordHint: 'At least 8 characters',
     confirm: 'Confirm password',
     showPw: 'Show password',
     hidePw: 'Hide password',
     errFirst: 'Enter your first name',
     errLast: 'Enter your last name',
     errMin: 'Use at least 8 characters',
-    errMatch: 'The passwords don’t match',
+    errMatch: 'Passwords don’t match',
     create: 'Create account',
-    failed: 'We couldn’t create your account',
-    doneTitle: 'Your account is ready',
-    doneText: 'Welcome, {name}. You’re signed in as {role} at {school}. Use {email} and your new password next time.',
-    goDashboard: 'Go to your dashboard',
-    detailChildren: 'Children', detailClass: 'Class', detailSubject: 'Subject',
-    signedInTitle: 'You’re already signed in',
-    signedInText: 'You’re signed in as {name}. To use an invitation for someone else, sign out first.',
+    failed: 'Couldn’t create your account',
+    doneTitle: 'You’re all set',
+    doneText: 'Welcome, {name}.',
+    goDashboard: 'Go to dashboard',
+    signedInTitle: 'Already signed in',
+    signedInText: 'Signed in as {name}.',
   },
   sw: {
-    title: 'Fungua akaunti yako',
-    inviteOnlyText: 'Akaunti za EduLearn hufunguliwa kwa mwaliko, ili kila mtu ajiunge na shule akiwa na ruhusa sahihi. Fungua kiungo kilicho kwenye barua pepe ya mwaliko, au kibandike hapa chini.',
-    linkLabel: 'Kiungo au msimbo wa mwaliko',
-    linkHint: 'Kinafanana na https://…/register?token=… au msimbo mrefu.',
-    errLink: 'Bandika kiungo au msimbo kamili wa mwaliko wako',
+    title: 'Fungua akaunti',
+    pasteLede: 'Bandika kiungo kutoka kwenye mwaliko wako.',
+    linkLabel: 'Kiungo cha mwaliko',
+    errLink: 'Bandika kiungo kamili cha mwaliko',
     continue: 'Endelea',
-    noInviteTitle: 'Huna mwaliko?',
-    noInviteParents: 'Wazazi na wanafunzi: omba ofisi ya shule ikualike. Watahitaji barua pepe unayotaka kutumia.',
-    noInviteStaff: 'Walimu na wafanyakazi: omba msimamizi wa shule akutumie mwaliko.',
-    noInviteOther: 'Unaivutiwa na shule? Tutumie ujumbe na ofisi itakujibu.',
-    contact: 'Wasiliana na shule',
-    haveAccount: 'Tayari una akaunti?',
+    noInvite: 'Huna mwaliko?',
+    askOffice: 'Uliza ofisi ya shule',
+    haveAccount: 'Una akaunti?',
     checking: 'Tunakagua mwaliko wako…',
-    invalidTitle: 'Mwaliko huu hauwezi kutumika',
-    expiredTitle: 'Muda wa mwaliko huu umekwisha',
+    invalidTitle: 'Kiungo si sahihi',
+    expiredTitle: 'Muda wa kiungo umekwisha',
     tryAgain: 'Jaribu kiungo kingine',
-    youreInvited: 'Umealikwa kujiunga na {school} kama {role}.',
-    expires: 'Mwaliko huu unaisha tarehe {date}.',
+    joining: 'Unajiunga na {school} kama {role}.',
     email: 'Barua pepe',
-    emailHint: 'Imewekwa na shule. Utaitumia kuingia.',
     firstName: 'Jina la kwanza',
     lastName: 'Jina la ukoo',
-    phone: 'Namba ya simu',
-    phoneHint: 'Si lazima — kwa mfano 0777 123 456.',
+    phone: 'Simu (si lazima)',
     password: 'Nenosiri',
-    passwordHint: 'Angalau herufi 8. Usitumie nenosiri unalotumia mahali pengine.',
+    passwordHint: 'Angalau herufi 8',
     confirm: 'Thibitisha nenosiri',
     showPw: 'Onyesha nenosiri',
     hidePw: 'Ficha nenosiri',
@@ -89,13 +74,12 @@ const M = {
     errMin: 'Tumia angalau herufi 8',
     errMatch: 'Manenosiri hayalingani',
     create: 'Fungua akaunti',
-    failed: 'Imeshindikana kufungua akaunti yako',
-    doneTitle: 'Akaunti yako iko tayari',
-    doneText: 'Karibu, {name}. Umeingia kama {role} katika {school}. Tumia {email} na nenosiri lako jipya wakati ujao.',
+    failed: 'Imeshindikana kufungua akaunti',
+    doneTitle: 'Uko tayari',
+    doneText: 'Karibu, {name}.',
     goDashboard: 'Nenda kwenye dashibodi',
-    detailChildren: 'Watoto', detailClass: 'Darasa', detailSubject: 'Somo',
     signedInTitle: 'Tayari umeingia',
-    signedInText: 'Umeingia kama {name}. Ili kutumia mwaliko kwa mtu mwingine, toka kwanza.',
+    signedInText: 'Umeingia kama {name}.',
   },
 };
 
@@ -115,14 +99,26 @@ export function RegisterPage() {
   const [params] = useSearchParams();
   const token = params.get('token');
   const { user } = useAuth();
-  const [completed, setCompleted] = useState<{ user: SessionUser; schoolName: string } | null>(null);
+  const [completed, setCompleted] = useState<{ user: SessionUser } | null>(null);
 
-  if (completed) return <AuthLayout story="register"><Completed {...completed} /></AuthLayout>;
-  if (user) return <AuthLayout story="register"><AlreadySignedIn user={user} /></AuthLayout>;
+  if (completed) return <AuthLayout story={false}><Completed user={completed.user} /></AuthLayout>;
+  if (user) return <AuthLayout story={false}><AlreadySignedIn user={user} /></AuthLayout>;
   return (
-    <AuthLayout story="register">
+    <AuthLayout story={false}>
       {token ? <InvitationForm key={token} token={token} onDone={setCompleted} /> : <NoToken />}
     </AuthLayout>
+  );
+}
+
+/** Short footer shared by the states below. */
+function Foot({ showNoInvite }: { showNoInvite?: boolean }) {
+  const t = useT(M);
+  const { t: tc } = useI18n();
+  return (
+    <div className="auth-foot">
+      {showNoInvite && <p>{t('noInvite')} <Link to="/home#contact" className="bold">{t('askOffice')}</Link></p>}
+      <p>{t('haveAccount')} <Link to="/login" className="bold">{tc('signIn')}</Link></p>
+    </div>
   );
 }
 
@@ -140,29 +136,21 @@ function NoToken() {
   return (
     <>
       <h1>{t('title')}</h1>
-      <p className="lede">{t('inviteOnlyText')}</p>
+      <p className="lede">{t('pasteLede')}</p>
       <form onSubmit={submit} noValidate className="stack">
-        <Field label={t('linkLabel')} hint={t('linkHint')} error={error}>
-          <Input value={value} onChange={(e) => { setValue(e.target.value); setError(undefined); }} autoCapitalize="none" spellCheck={false} autoComplete="off" />
+        <Field label={t('linkLabel')} error={error}>
+          <Input value={value} onChange={(e) => { setValue(e.target.value); setError(undefined); }} placeholder="https://…" autoCapitalize="none" spellCheck={false} autoComplete="off" />
         </Field>
         <Button type="submit" variant="primary" size="lg" block icon={<ArrowRight size={18} />}>{t('continue')}</Button>
       </form>
-      <section className="auth-foot" aria-labelledby="no-invite">
-        <h2 id="no-invite" style={{ color: 'var(--text)', marginBottom: 8 }}>{t('noInviteTitle')}</h2>
-        <ul className="plain-list stack-sm">
-          <li>{t('noInviteParents')}</li>
-          <li>{t('noInviteStaff')}</li>
-          <li>{t('noInviteOther')} <Link to="/home#contact" className="bold">{t('contact')}</Link></li>
-        </ul>
-        <p className="mt-2">{t('haveAccount')} <Link to="/login" className="bold">{useI18n().t('signIn')}</Link></p>
-      </section>
+      <Foot showNoInvite />
     </>
   );
 }
 
-function InvitationForm({ token, onDone }: { token: string; onDone: (d: { user: SessionUser; schoolName: string }) => void }) {
+function InvitationForm({ token, onDone }: { token: string; onDone: (d: { user: SessionUser }) => void }) {
   const t = useT(M);
-  const { t: tc, lang } = useI18n();
+  const { t: tc } = useI18n();
   const { setUser } = useAuth();
   const lookup = useQuery({
     queryKey: ['invitation', token],
@@ -189,14 +177,11 @@ function InvitationForm({ token, onDone }: { token: string; onDone: (d: { user: 
     const expired = lookup.error instanceof ApiError && lookup.error.status === 410;
     return (
       <div>
-        <span className="empty-icon" style={{ margin: '0 0 16px' }} aria-hidden>{expired ? <Clock size={26} /> : <Link2Off size={26} />}</span>
+        <span className="empty-icon" style={{ margin: '0 0 16px' }} aria-hidden>{expired ? <Clock size={24} /> : <Link2Off size={24} />}</span>
         <h1>{expired ? t('expiredTitle') : t('invalidTitle')}</h1>
         <p className="lede">{errorMessage(lookup.error)}</p>
-        <div className="row mt-3" style={{ flexWrap: 'wrap', gap: 10 }}>
-          <ButtonLink to="/register" variant="primary" icon={<ArrowRight size={17} />}>{t('tryAgain')}</ButtonLink>
-          <ButtonLink to="/home#contact" icon={<MailQuestion size={17} />}>{t('contact')}</ButtonLink>
-        </div>
-        <p className="auth-foot">{t('haveAccount')} <Link to="/login" className="bold">{tc('signIn')}</Link></p>
+        <div className="mt-3"><ButtonLink to="/register" variant="primary" icon={<ArrowRight size={17} />}>{t('tryAgain')}</ButtonLink></div>
+        <Foot showNoInvite />
       </div>
     );
   }
@@ -207,7 +192,6 @@ function InvitationForm({ token, onDone }: { token: string; onDone: (d: { user: 
     setForm({ ...values, [k]: e.target.value });
     if (errors[k]) setErrors(({ [k]: _drop, ...rest }) => rest);
   };
-  const expiresOn = new Date(inv.expiresAt).toLocaleDateString(lang === 'sw' ? 'sw-TZ' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,7 +216,7 @@ function InvitationForm({ token, onDone }: { token: string; onDone: (d: { user: 
         password: values.password,
       };
       const res = await api.post<{ user: SessionUser }>('/auth/register', body);
-      onDone({ user: res.user, schoolName: inv.schoolName });
+      onDone({ user: res.user });
       setUser(res.user);
     } catch (err) {
       setError(errorMessage(err));
@@ -245,20 +229,13 @@ function InvitationForm({ token, onDone }: { token: string; onDone: (d: { user: 
   return (
     <>
       <h1>{t('title')}</h1>
-      <p className="lede">
-        {t('youreInvited', { school: inv.schoolName, role: tc(inv.role).toLowerCase() })}
-      </p>
-      {inv.detailSummary && inv.role !== 'admin' && (
-        <p className="small" style={{ marginTop: 8 }}>
-          <strong>{t(inv.role === 'parent' ? 'detailChildren' : inv.role === 'student' ? 'detailClass' : 'detailSubject')}:</strong> {inv.detailSummary}
-        </p>
-      )}
+      <p className="lede">{t('joining', { school: inv.schoolName, role: tc(inv.role).toLowerCase() })}</p>
       <form onSubmit={submit} noValidate className="stack" aria-busy={busy}>
         {error && <Alert tone="danger" title={t('failed')}>{error}</Alert>}
-        <Field label={t('email')} hint={t('emailHint')}>
+        <Field label={t('email')}>
           <Input type="email" name="email" value={inv.email} readOnly autoComplete="username" />
         </Field>
-        <div className="grid grid-2" style={{ gap: 16 }}>
+        <div className="form-grid">
           <Field label={t('firstName')} error={errors.firstName} required>
             <Input name="firstName" value={values.firstName} onChange={set('firstName')} autoComplete="given-name" />
           </Field>
@@ -266,7 +243,7 @@ function InvitationForm({ token, onDone }: { token: string; onDone: (d: { user: 
             <Input name="lastName" value={values.lastName} onChange={set('lastName')} autoComplete="family-name" />
           </Field>
         </div>
-        <Field label={t('phone')} hint={t('phoneHint')} error={errors.phone}>
+        <Field label={t('phone')} error={errors.phone}>
           <Input name="phone" type="tel" inputMode="tel" value={values.phone} onChange={set('phone')} autoComplete="tel" />
         </Field>
         <Field label={t('password')} hint={t('passwordHint')} error={errors.password} required>
@@ -275,24 +252,22 @@ function InvitationForm({ token, onDone }: { token: string; onDone: (d: { user: 
         <Field label={t('confirm')} error={errors.confirm} required>
           <PasswordInput name="confirm" value={values.confirm} onChange={set('confirm')} autoComplete="new-password" showLabel={t('showPw')} hideLabel={t('hidePw')} />
         </Field>
-        <Button type="submit" variant="primary" size="lg" block loading={busy} icon={<UserPlus size={18} />}>{t('create')}</Button>
-        <p className="tiny muted" style={{ textAlign: 'center' }}>{t('expires', { date: expiresOn })}</p>
+        <Button type="submit" variant="primary" size="lg" block loading={busy}>{t('create')}</Button>
       </form>
-      <p className="auth-foot">{t('haveAccount')} <Link to="/login" className="bold">{tc('signIn')}</Link></p>
+      <Foot />
     </>
   );
 }
 
-function Completed({ user, schoolName }: { user: SessionUser; schoolName: string }) {
+function Completed({ user }: { user: SessionUser }) {
   const t = useT(M);
-  const { t: tc } = useI18n();
   return (
     <div role="status">
       <span className="empty-icon" style={{ margin: '0 0 16px', background: 'var(--success-soft)', color: 'var(--success)' }} aria-hidden>
-        <CheckCircle2 size={28} />
+        <CheckCircle2 size={26} />
       </span>
       <h1>{t('doneTitle')}</h1>
-      <p className="lede">{t('doneText', { name: user.firstName, role: tc(user.role).toLowerCase(), school: schoolName, email: user.email })}</p>
+      <p className="lede">{t('doneText', { name: user.firstName })}</p>
       <div className="mt-3"><ButtonLink to="/" variant="primary" size="lg" icon={<ArrowRight size={18} />}>{t('goDashboard')}</ButtonLink></div>
     </div>
   );
