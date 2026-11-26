@@ -1,86 +1,108 @@
 import {
-  BookOpen, Calendar, CalendarClock, ClipboardCheck, GraduationCap, Home, Layers, Megaphone, MessageSquare,
-  NotebookPen, Settings, School, UserRound, Users, Wallet, type LucideIcon,
+  Award, BarChart3, BookOpen, Building2, Calendar, CalendarClock, ClipboardCheck, FileText, GraduationCap, History, Home,
+  Inbox, Layers, Megaphone, MessageSquare, NotebookPen, School, Settings, UserRound, Users, Wallet, type LucideIcon,
 } from 'lucide-react';
 import type { Role } from '../../../shared/types';
+import type { CommonKey } from '../lib/i18n';
 
 export interface NavItem {
   to: string;
-  label: string;
+  /** Translation key for the label (see COMMON in lib/i18n). */
+  label: CommonKey;
   /** Shorter label for the phone tab bar. */
-  short?: string;
+  short?: CommonKey;
   icon: LucideIcon;
   badge?: 'messages';
   /** Extra words that help the command palette find this page. */
   keywords?: string;
 }
 export interface NavGroup {
-  label?: string;
+  label?: CommonKey;
   items: NavItem[];
 }
 
-const common = {
-  announcements: { to: '/announcements', label: 'Announcements', short: 'News', icon: Megaphone, keywords: 'news notices' },
-  calendar: { to: '/calendar', label: 'Calendar', icon: Calendar, keywords: 'events holidays dates' },
-  messages: { to: '/messages', label: 'Messages', icon: MessageSquare, badge: 'messages', keywords: 'inbox mail chat' },
-  settings: { to: '/settings', label: 'Settings', icon: Settings, keywords: 'profile password accessibility theme' },
+const item = {
+  dashboard: { to: '/', label: 'dashboard', short: 'home', icon: Home },
+  announcements: { to: '/announcements', label: 'announcements', short: 'news', icon: Megaphone, keywords: 'news notices matangazo' },
+  calendar: { to: '/calendar', label: 'calendar', icon: Calendar, keywords: 'events holidays dates kalenda' },
+  messages: { to: '/messages', label: 'messages', icon: MessageSquare, badge: 'messages', keywords: 'inbox mail chat ujumbe' },
+  settings: { to: '/settings', label: 'settings', icon: Settings, keywords: 'profile password language accessibility theme lugha' },
+  timetable: { to: '/timetable', label: 'timetable', icon: CalendarClock, keywords: 'schedule lessons periods ratiba' },
+  reportCards: { to: '/report-cards', label: 'reportCards', short: 'results', icon: Award, keywords: 'results exams matokeo ripoti' },
+  assignments: { to: '/assignments', label: 'assignments', short: 'assignmentsShort', icon: BookOpen, keywords: 'homework due kazi' },
+  fees: { to: '/fees', label: 'fees', short: 'feesShort', icon: Wallet, keywords: 'invoices payments receipts ada malipo' },
 } satisfies Record<string, NavItem>;
 
 export const NAV: Record<Role, NavGroup[]> = {
   admin: [
-    { items: [{ to: '/', label: 'Dashboard', short: 'Home', icon: Home }] },
+    { items: [item.dashboard] },
     {
-      label: 'People',
+      label: 'people',
       items: [
-        { to: '/students', label: 'Students', icon: GraduationCap, keywords: 'pupils learners enrol' },
-        { to: '/teachers', label: 'Teachers', icon: UserRound, keywords: 'staff' },
-        { to: '/parents', label: 'Parents', icon: Users, keywords: 'guardians families' },
+        { to: '/students', label: 'students', icon: GraduationCap, keywords: 'pupils learners enrol wanafunzi' },
+        { to: '/teachers', label: 'teachers', icon: UserRound, keywords: 'staff walimu' },
+        { to: '/parents', label: 'parents', icon: Users, keywords: 'guardians families wazazi' },
       ],
     },
     {
-      label: 'Academics',
+      label: 'academics',
       items: [
-        { to: '/classes', label: 'Classes', icon: School, keywords: 'homeroom grades sections' },
-        { to: '/timetable', label: 'Timetable', icon: CalendarClock, keywords: 'schedule lessons periods' },
-        { to: '/attendance', label: 'Attendance', icon: ClipboardCheck, keywords: 'register roll call absent' },
-        { to: '/gradebook', label: 'Gradebook', icon: NotebookPen, keywords: 'marks scores assessments exams' },
-        { to: '/academics', label: 'Subjects & terms', icon: Layers, keywords: 'curriculum setup' },
+        { to: '/classes', label: 'classes', icon: School, keywords: 'forms streams madarasa' },
+        item.timetable,
+        { to: '/attendance', label: 'attendance', icon: ClipboardCheck, keywords: 'register roll call absent mahudhurio' },
+        { to: '/gradebook', label: 'gradebook', icon: NotebookPen, keywords: 'marks scores assessments alama' },
+        { to: '/exams', label: 'exams', icon: Award, keywords: 'examinations results report cards mitihani' },
+        { to: '/academics', label: 'subjectsTerms', icon: Layers, keywords: 'curriculum grading academic year masomo' },
       ],
     },
-    { label: 'Office', items: [{ to: '/fees', label: 'Fees & payments', short: 'Fees', icon: Wallet, keywords: 'invoices billing finance money' }, common.announcements, common.calendar, common.messages] },
+    { label: 'finance', items: [item.fees] },
+    { label: 'communication', items: [item.announcements, item.calendar, item.messages] },
+    {
+      label: 'administration',
+      items: [
+        { to: '/reports', label: 'reports', icon: BarChart3, keywords: 'export excel pdf analytics ripoti' },
+        { to: '/enquiries', label: 'enquiries', icon: Inbox, keywords: 'contact demo requests website' },
+        { to: '/audit-log', label: 'auditLog', icon: History, keywords: 'activity history security' },
+        { to: '/school-settings', label: 'schoolSettings', icon: Building2, keywords: 'school name logo currency' },
+      ],
+    },
   ],
   teacher: [
-    { items: [{ to: '/', label: 'Dashboard', short: 'Home', icon: Home }] },
+    { items: [item.dashboard] },
     {
-      label: 'Teaching',
+      label: 'teaching',
       items: [
-        { to: '/my-classes', label: 'My classes', short: 'Classes', icon: BookOpen, keywords: 'courses subjects' },
-        { to: '/attendance', label: 'Attendance', icon: ClipboardCheck, keywords: 'register roll call' },
-        { to: '/gradebook', label: 'Gradebook', icon: NotebookPen, keywords: 'marks scores assessments' },
-        { to: '/timetable', label: 'Timetable', icon: CalendarClock, keywords: 'schedule lessons' },
-        { to: '/students', label: 'Students', icon: GraduationCap, keywords: 'pupils' },
+        { to: '/my-classes', label: 'myClasses', short: 'classes', icon: BookOpen, keywords: 'courses subjects' },
+        { to: '/attendance', label: 'attendance', icon: ClipboardCheck, keywords: 'register roll call mahudhurio' },
+        { to: '/gradebook', label: 'gradebook', icon: NotebookPen, keywords: 'marks scores assessments assignments alama' },
+        { to: '/exams', label: 'exams', icon: Award, keywords: 'examinations results report cards mitihani' },
+        item.timetable,
+        { to: '/students', label: 'students', icon: GraduationCap, keywords: 'pupils wanafunzi' },
+        { to: '/reports', label: 'reports', icon: BarChart3, keywords: 'export excel attendance ripoti' },
       ],
     },
-    { label: 'School', items: [common.announcements, common.calendar, common.messages] },
+    { label: 'school', items: [item.announcements, item.calendar, item.messages] },
   ],
   student: [
-    { items: [{ to: '/', label: 'Dashboard', short: 'Home', icon: Home }] },
+    { items: [item.dashboard] },
     {
-      label: 'Learning',
+      label: 'learning',
       items: [
-        { to: '/timetable', label: 'Timetable', icon: CalendarClock, keywords: 'schedule lessons' },
-        { to: '/progress', label: 'Grades & attendance', short: 'Grades', icon: NotebookPen, keywords: 'marks results report' },
-        { to: '/assignments', label: 'Assignments', icon: BookOpen, keywords: 'homework due tests exams' },
-        { to: '/fees', label: 'Fees', icon: Wallet, keywords: 'invoices payments' },
+        item.timetable,
+        { to: '/progress', label: 'gradesAttendance', short: 'grades', icon: NotebookPen, keywords: 'marks results report alama' },
+        item.reportCards,
+        item.assignments,
+        item.fees,
       ],
     },
-    { label: 'School', items: [common.announcements, common.calendar, common.messages] },
+    { label: 'school', items: [item.announcements, item.calendar, item.messages] },
   ],
   parent: [
-    { items: [{ to: '/', label: 'Dashboard', short: 'Home', icon: Home, keywords: 'children kids' }] },
-    { label: 'Family', items: [{ to: '/fees', label: 'Fees & payments', short: 'Fees', icon: Wallet, keywords: 'invoices balance' }] },
-    { label: 'School', items: [common.announcements, common.calendar, common.messages] },
+    { items: [{ ...item.dashboard, label: 'myChildren', keywords: 'children kids watoto' }] },
+    { label: 'family', items: [item.reportCards, item.assignments, item.timetable, item.fees] },
+    { label: 'school', items: [item.announcements, item.calendar, item.messages] },
   ],
 };
 
-export const SETTINGS_ITEM = common.settings;
+export const SETTINGS_ITEM = item.settings;
+export const NOTIFICATIONS_ITEM: NavItem = { to: '/notifications', label: 'notifications', icon: FileText, keywords: 'alerts arifa' };

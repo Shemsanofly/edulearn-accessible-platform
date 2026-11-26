@@ -6,6 +6,7 @@ import {
 } from 'react';
 import { Link } from 'react-router-dom';
 import { colorFor, initials, type Tone } from '../lib/format';
+import { useI18n } from '../lib/i18n';
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 export { cx };
@@ -70,18 +71,21 @@ export function Badge({ tone = 'neutral', dot, children, title }: { tone?: Tone;
   return <span className={cx('badge', tone !== 'neutral' && `tone-${tone}`, dot && 'badge-dot')} title={title}>{children}</span>;
 }
 
-export function Avatar({ name, size = 'md', color }: { name: string; size?: 'sm' | 'md' | 'lg'; color?: string }) {
+/** A person's photo, or their initials on a colour when there's no photo (or it fails to load). */
+export function Avatar({ name, size = 'md', color, photoUrl }: { name: string; size?: 'sm' | 'md' | 'lg' | 'xl'; color?: string; photoUrl?: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const showPhoto = !!photoUrl && !failed;
   return (
-    <span className={cx('avatar', size !== 'md' && `avatar-${size}`)} style={{ background: color ?? colorFor(name) }} aria-hidden>
-      {initials(name)}
+    <span className={cx('avatar', size !== 'md' && `avatar-${size}`, showPhoto && 'has-photo')} style={{ background: color ?? colorFor(name) }} aria-hidden>
+      {showPhoto ? <img src={photoUrl!} alt="" loading="lazy" onError={() => setFailed(true)} /> : initials(name)}
     </span>
   );
 }
 
-export function PersonCell({ name, sub, to, color }: { name: string; sub?: ReactNode; to?: string; color?: string }) {
+export function PersonCell({ name, sub, to, color, photoUrl }: { name: string; sub?: ReactNode; to?: string; color?: string; photoUrl?: string | null }) {
   const body = (
     <div className="cell-person">
-      <Avatar name={name} color={color} />
+      <Avatar name={name} color={color} photoUrl={photoUrl} />
       <div className="truncate">
         <div className="name truncate">{name}</div>
         {sub && <div className="sub truncate">{sub}</div>}
@@ -98,7 +102,7 @@ export function StatCard({ icon, label, value, hint, tone = 'primary', to }: { i
       <div className="stat-icon" aria-hidden>{icon}</div>
       <div>
         <div className="stat-label">{label}</div>
-        <div className="stat-value">{value}</div>
+        <div className={cx('stat-value', typeof value === 'string' && value.length > 11 && 'long')}>{value}</div>
         {hint && <div className="stat-hint">{hint}</div>}
       </div>
     </div>
@@ -166,12 +170,13 @@ export function EmptyState({ icon, title, children, action }: { icon?: ReactNode
 }
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="card">
       <EmptyState
         icon={<AlertCircle size={26} />}
-        title="We couldn't load this"
-        action={onRetry && <Button icon={<RefreshCw size={16} />} onClick={onRetry}>Try again</Button>}
+        title={t('couldNotLoad')}
+        action={onRetry && <Button icon={<RefreshCw size={16} />} onClick={onRetry}>{t('tryAgain')}</Button>}
       >
         {error instanceof Error ? error.message : 'Something went wrong.'}
       </EmptyState>
@@ -291,18 +296,19 @@ export function SearchInput({ value, onChange, placeholder = 'Search…', label 
 }
 
 export function Pagination({ page, pageSize, total, onChange }: { page: number; pageSize: number; total: number; onChange: (p: number) => void }) {
+  const { t } = useI18n();
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
   return (
     <div className="card-footer">
       <span className="small muted" aria-live="polite">
-        {total === 0 ? 'No results' : `Showing ${from}–${to} of ${total}`}
+        {total === 0 ? t('noResults') : t('showing', { from, to, total })}
       </span>
       <div className="row" style={{ gap: 6 }}>
-        <Button size="sm" iconOnly aria-label="Previous page" disabled={page <= 1} onClick={() => onChange(page - 1)} icon={<ChevronLeft size={16} />} />
-        <span className="small num">Page {page} of {pages}</span>
-        <Button size="sm" iconOnly aria-label="Next page" disabled={page >= pages} onClick={() => onChange(page + 1)} icon={<ChevronRight size={16} />} />
+        <Button size="sm" iconOnly aria-label={t('previous')} disabled={page <= 1} onClick={() => onChange(page - 1)} icon={<ChevronLeft size={16} />} />
+        <span className="small num">{t('page', { page, pages })}</span>
+        <Button size="sm" iconOnly aria-label={t('next')} disabled={page >= pages} onClick={() => onChange(page + 1)} icon={<ChevronRight size={16} />} />
       </div>
     </div>
   );

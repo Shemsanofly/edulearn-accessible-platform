@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type {
-  AdminDashboard, Assessment, ChildSummary, Course, FeeSummary, ParentDashboard, SchoolEvent,
+  AdminDashboard, Assessment, AuditEntry, ChildSummary, Course, FeeSummary, ParentDashboard, SchoolEvent,
   SearchResults, StudentDashboard, StudentListItem, TeacherDashboard, TimetableSlot,
 } from '../../../shared/types.js';
 import { query, queryOne } from '../db/pool.js';
@@ -20,7 +20,7 @@ dashboardRouter.get('/dashboard', async (req, res) => {
   const [events, announcements] = await Promise.all([upcomingEvents(), visibleAnnouncements(user, 5)]);
 
   if (user.role === 'admin') {
-    const [counts, today, trend, enrollment, fees, setup] = await Promise.all([
+    const [counts, today, trend, enrollment, fees, setup, latestExam, recentActivity, enquiries] = await Promise.all([
       queryOne<AdminDashboard['counts']>(
         `SELECT (SELECT COUNT(*)::int FROM students s JOIN users u ON u.id = s.user_id WHERE u.is_active) AS students,
                 (SELECT COUNT(*)::int FROM teachers t JOIN users u ON u.id = t.user_id WHERE u.is_active) AS teachers,
@@ -62,10 +62,24 @@ dashboardRouter.get('/dashboard', async (req, res) => {
                 (SELECT COUNT(*)::int FROM class_subjects) AS courses,
                 (SELECT COUNT(*)::int FROM timetable_slots) AS lessons`,
       ),
+      queryOne<{ id: number; name: string }>('SELECT id, name FROM exams WHERE published_at IS NOT NULL ORDER BY published_at DESC LIMIT 1'),
+      query<AuditEntry>('SELECT id, actor_id, actor_name, action, entity, entity_id, summary, created_at FROM audit_logs ORDER BY created_at DESC, id DESC LIMIT 6'),
+      queryOne<{ n: number }>("SELECT COUNT(*)::int AS n FROM contact_requests WHERE status = 'new'"),
     ]);
+    const performanceSubjects = latestExam
+      ? await query<AdminDashboard['performance']['subjects'][number]>(
+          `SELECT sub.name AS subject_name, sub.color, ROUND(AVG(g.score / a.max_score * 100), 1) AS average_percent
+             FROM assessments a JOIN class_subjects cs ON cs.id = a.class_subject_id JOIN subjects sub ON sub.id = cs.subject_id
+             LEFT JOIN grades g ON g.assessment_id = a.id
+            WHERE a.exam_id = $1 GROUP BY sub.name, sub.color ORDER BY sub.name`,
+          [latestExam.id],
+        )
+      : [];
     const dashboard: AdminDashboard = {
       role: 'admin', counts: counts!, attendanceToday: today!, attendanceTrend: trend, enrollmentByGrade: enrollment,
       fees: fees!, setup: setup!, upcomingEvents: events, announcements,
+      performance: { examName: latestExam?.name ?? null, subjects: performanceSubjects },
+      recentActivity, newEnquiries: enquiries?.n ?? 0,
     };
     res.json(dashboard);
     return;

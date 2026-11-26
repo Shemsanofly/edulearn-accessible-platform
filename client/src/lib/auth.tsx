@@ -1,18 +1,21 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { Preferences, SessionUser } from '../../../shared/types';
+import type { Preferences, SchoolSettings, SessionUser } from '../../../shared/types';
 import { api, setUnauthorizedHandler } from './api';
 import { setCurrency } from './format';
 import { applyPreferences, storePreferences } from './preferences';
 
-interface School {
-  name: string;
-  currency: string;
-}
+type School = SchoolSettings;
+
+const DEFAULT_SCHOOL: School = {
+  name: 'EduLearn', motto: null, address: null, phone: null, email: null, website: null, currency: 'TZS',
+  defaultLanguage: 'en', levelLabel: 'Form', isDemo: false, logoUrl: null,
+};
 
 interface AuthState {
   user: SessionUser | null;
   school: School;
+  setSchool: (s: School) => void;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<SessionUser>;
   signOut: () => Promise<void>;
@@ -24,7 +27,11 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<SessionUser | null>(null);
-  const [school, setSchool] = useState<School>({ name: 'EduLearn Academy', currency: 'USD' });
+  const [school, setSchoolState] = useState<School>(DEFAULT_SCHOOL);
+  const setSchool = useCallback((s: School) => {
+    setSchoolState(s);
+    setCurrency(s.currency);
+  }, []);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
@@ -47,22 +54,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((res) => {
         if (res.user) setUser(res.user);
         setSchool(res.school);
-        setCurrency(res.school.currency);
       })
       .catch(() => setUserState(null))
       .finally(() => setLoading(false));
-  }, [queryClient, setUser]);
+  }, [queryClient, setUser, setSchool]);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
       const res = await api.post<{ user: SessionUser }>('/auth/login', { email, password });
       const me = await api.get<{ user: SessionUser; school: School }>('/auth/me');
       setSchool(me.school);
-      setCurrency(me.school.currency);
       setUser(res.user);
       return res.user;
     },
-    [setUser],
+    [setUser, setSchool],
   );
 
   const signOut = useCallback(async () => {
@@ -85,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AuthContext.Provider value={{ user, school, loading, signIn, signOut, updatePreferences, setUser }}>
+    <AuthContext.Provider value={{ user, school, setSchool, loading, signIn, signOut, updatePreferences, setUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -103,3 +108,6 @@ export function useUser(): SessionUser {
   if (!user) throw new Error('Not signed in');
   return user;
 }
+
+/** The school's settings (name, currency, level label…). Available on public pages too. */
+export const useSchool = () => useAuth().school;

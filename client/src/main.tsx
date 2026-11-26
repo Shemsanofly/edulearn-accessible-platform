@@ -7,6 +7,7 @@ import { ConfirmProvider } from './components/Modal';
 import { ToastProvider } from './components/Toast';
 import { ApiError } from './lib/api';
 import { AuthProvider } from './lib/auth';
+import { I18nProvider } from './lib/i18n';
 import { applyPreferences, loadPreferences } from './lib/preferences';
 import './styles/index.css';
 
@@ -27,13 +28,15 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ToastProvider>
-          <ConfirmProvider>
-            <AuthProvider>
-              <App />
-            </AuthProvider>
-          </ConfirmProvider>
-        </ToastProvider>
+        <AuthProvider>
+          <I18nProvider>
+            <ToastProvider>
+              <ConfirmProvider>
+                <App />
+              </ConfirmProvider>
+            </ToastProvider>
+          </I18nProvider>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

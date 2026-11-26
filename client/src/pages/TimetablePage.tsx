@@ -10,7 +10,64 @@ import {
 } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { useUser } from '../lib/auth';
-import { DAYS, fullName, isoWeekday, plural } from '../lib/format';
+import { ChildSwitcher, useSelectedChild } from '../components/ChildSwitcher';
+import { DAYS, fullName, isoWeekday } from '../lib/format';
+import { useI18n, useT } from '../lib/i18n';
+
+const M = {
+  en: {
+    classTimetable: 'Class timetable', teacherTimetable: 'Teacher timetable', myTimetable: 'My timetable',
+    myTeaching: 'My teaching timetable', childTimetable: '{name}’s timetable',
+    descAdmin: 'Plan lessons for each class. Clashes for the class, teacher and room are checked automatically.',
+    descOther: 'Your weekly lessons at a glance.', descParent: 'Your child’s weekly lessons at a glance.',
+    layout: 'Layout', week: 'Week', day: 'Day', addLesson: 'Add lesson',
+    viewBy: 'View timetable by', byClass: 'By class', byTeacher: 'By teacher', teacher: 'Teacher',
+    whose: 'Whose timetable', myLessons: 'My lessons', wholeClass: '{name} (whole class)',
+    perWeek: '{lessons} lessons a week · {subjects} subjects', lessons: '{n} lessons', oneLesson: '1 lesson',
+    noTimetable: 'No timetable to show', noChild: 'Your account isn’t linked to a child in a class yet.',
+    noLessons: 'No lessons scheduled yet', addFirst: 'Add the first lesson',
+    noLessonsAdmin: 'Add lessons to build this week’s timetable.',
+    noLessonsOther: 'Your timetable will appear here once the school has published it.',
+    noTeacher: 'No teacher', weekly: 'Weekly timetable', time: 'Time', todayMark: ' (today)',
+    lessonLabel: '{day} {start} to {end}: {subject}, {who}', roomPart: ', room {room}', editLesson: 'Edit lesson: {label}',
+    noLessonsOn: 'No lessons on {day}', editAt: 'Edit {subject} at {time}',
+    updated: 'Lesson updated', added: 'Lesson added', removed: 'Lesson removed',
+    eSubject: 'Choose a subject', eAfter: 'Must be after the start time',
+    editTitle: 'Edit lesson', addTitle: 'Add a lesson', pickHint: 'Pick a subject, a day and a time.',
+    removeTitle: 'Remove this lesson?', removeBody: '{subject} on {day} at {time} will be removed from the timetable.',
+    removeLesson: 'Remove lesson', notFree: 'This time isn’t free', pickAnother: 'Pick another time or room.',
+    subject: 'Subject', loadingSubjects: 'Loading subjects…', noSubjects: 'No subjects set up for this class',
+    quickPick: 'Quick pick a period', starts: 'Starts', ends: 'Ends', room: 'Room',
+    roomHint: 'Leave blank to use the class’s usual room', roomPh: 'e.g. Science Lab 2',
+    taughtBy: 'Taught by', changeTeacher: '— change the teacher on the class page.',
+  },
+  sw: {
+    classTimetable: 'Ratiba ya darasa', teacherTimetable: 'Ratiba ya mwalimu', myTimetable: 'Ratiba yangu',
+    myTeaching: 'Ratiba yangu ya kufundisha', childTimetable: 'Ratiba ya {name}',
+    descAdmin: 'Panga vipindi kwa kila darasa. Migongano ya darasa, mwalimu na chumba hukaguliwa yenyewe.',
+    descOther: 'Vipindi vyako vya wiki kwa haraka.', descParent: 'Vipindi vya wiki vya mtoto wako kwa haraka.',
+    layout: 'Mpangilio', week: 'Wiki', day: 'Siku', addLesson: 'Ongeza kipindi',
+    viewBy: 'Tazama ratiba kwa', byClass: 'Kwa darasa', byTeacher: 'Kwa mwalimu', teacher: 'Mwalimu',
+    whose: 'Ratiba ya nani', myLessons: 'Vipindi vyangu', wholeClass: '{name} (darasa zima)',
+    perWeek: 'Vipindi {lessons} kwa wiki · masomo {subjects}', lessons: 'Vipindi {n}', oneLesson: 'Kipindi 1',
+    noTimetable: 'Hakuna ratiba ya kuonyesha', noChild: 'Akaunti yako bado haijaunganishwa na mtoto aliye darasani.',
+    noLessons: 'Bado hakuna vipindi vilivyopangwa', addFirst: 'Ongeza kipindi cha kwanza',
+    noLessonsAdmin: 'Ongeza vipindi ili kujenga ratiba ya wiki hii.',
+    noLessonsOther: 'Ratiba yako itaonekana hapa shule itakapoitoa.',
+    noTeacher: 'Hakuna mwalimu', weekly: 'Ratiba ya wiki', time: 'Muda', todayMark: ' (leo)',
+    lessonLabel: '{day} {start} hadi {end}: {subject}, {who}', roomPart: ', chumba {room}', editLesson: 'Hariri kipindi: {label}',
+    noLessonsOn: 'Hakuna vipindi siku ya {day}', editAt: 'Hariri {subject} saa {time}',
+    updated: 'Kipindi kimesasishwa', added: 'Kipindi kimeongezwa', removed: 'Kipindi kimeondolewa',
+    eSubject: 'Chagua somo', eAfter: 'Lazima iwe baada ya muda wa kuanza',
+    editTitle: 'Hariri kipindi', addTitle: 'Ongeza kipindi', pickHint: 'Chagua somo, siku na muda.',
+    removeTitle: 'Ondoa kipindi hiki?', removeBody: '{subject} siku ya {day} saa {time} kitaondolewa kwenye ratiba.',
+    removeLesson: 'Ondoa kipindi', notFree: 'Muda huu haupo wazi', pickAnother: 'Chagua muda au chumba kingine.',
+    subject: 'Somo', loadingSubjects: 'Inapakia masomo…', noSubjects: 'Hakuna masomo yaliyowekwa kwa darasa hili',
+    quickPick: 'Chagua kipindi haraka', starts: 'Kinaanza', ends: 'Kinaisha', room: 'Chumba',
+    roomHint: 'Acha wazi kutumia chumba cha kawaida cha darasa', roomPh: 'mf. Maabara ya Sayansi 2',
+    taughtBy: 'Kinafundishwa na', changeTeacher: '— badilisha mwalimu kwenye ukurasa wa darasa.',
+  },
+};
 
 const PX_PER_MIN = 1.15;
 
@@ -24,10 +81,15 @@ type Perspective = 'class' | 'teacher';
 
 export function TimetablePage() {
   const user = useUser();
+  const t = useT(M);
+  const { t: c } = useI18n();
   const [params, setParams] = useSearchParams();
   const isAdmin = user.role === 'admin';
-  const classId = params.get('classId') ? Number(params.get('classId')) : null;
-  const teacherId = params.get('teacherId') ? Number(params.get('teacherId')) : null;
+  const isParent = user.role === 'parent';
+  // Parents pick a child; everyone else picks a class (or teacher) in the URL.
+  const { child, children, setChild, isLoading: loadingChildren } = useSelectedChild();
+  const classId = isParent ? child?.classId ?? null : params.get('classId') ? Number(params.get('classId')) : null;
+  const teacherId = !isParent && params.get('teacherId') ? Number(params.get('teacherId')) : null;
 
   const [view, setView] = useState<'week' | 'day'>(() => (window.innerWidth < 720 ? 'day' : 'week'));
   const [day, setDay] = useState(() => Math.min(isoWeekday(), 5));
@@ -37,7 +99,7 @@ export function TimetablePage() {
   const classes = useQuery({
     queryKey: ['classes', user.role === 'teacher' ? 'mine' : 'all'],
     queryFn: () => api.get<ClassListItem[]>('/classes', user.role === 'teacher' ? { mine: true } : undefined),
-    enabled: user.role !== 'student',
+    enabled: user.role !== 'student' && !isParent,
   });
   const teachers = useQuery({
     queryKey: ['teachers'],
@@ -45,14 +107,14 @@ export function TimetablePage() {
     enabled: isAdmin,
   });
 
-  // Admins and parents always look at a specific class (or teacher); default to the first one.
+  // Admins always look at a specific class (or teacher); default to the first one.
   useEffect(() => {
-    if ((isAdmin || user.role === 'parent') && !classId && !teacherId && classes.data?.length) {
+    if (isAdmin && !classId && !teacherId && classes.data?.length) {
       setParams({ classId: String(classes.data[0]!.id) }, { replace: true });
     }
-  }, [isAdmin, user.role, classId, teacherId, classes.data, setParams]);
+  }, [isAdmin, classId, teacherId, classes.data, setParams]);
 
-  const needsSelection = (isAdmin || user.role === 'parent') && !classId && !teacherId;
+  const needsSelection = (isAdmin || isParent) && !classId && !teacherId;
   const query: Record<string, number> = {};
   if (classId) query.classId = classId;
   else if (teacherId) query.teacherId = teacherId;
@@ -71,12 +133,13 @@ export function TimetablePage() {
   }, [slots]);
 
   const title = (() => {
-    if (classId) return classes.data?.find((c) => c.id === classId)?.name ?? 'Class timetable';
+    if (isParent) return child ? `${t('childTimetable', { name: child.firstName })} · ${child.className ?? ''}` : t('classTimetable');
+    if (classId) return classes.data?.find((cl) => cl.id === classId)?.name ?? t('classTimetable');
     if (teacherId) {
-      const t = teachers.data?.find((x) => x.id === teacherId);
-      return t ? fullName(t) : 'Teacher timetable';
+      const tc = teachers.data?.find((x) => x.id === teacherId);
+      return tc ? fullName(tc) : t('teacherTimetable');
     }
-    return user.role === 'student' ? 'My timetable' : 'My teaching timetable';
+    return user.role === 'student' ? t('myTimetable') : t('myTeaching');
   })();
 
   const totalPerWeek = slots.length;
@@ -85,13 +148,13 @@ export function TimetablePage() {
   return (
     <>
       <PageHeader
-        title="Timetable"
-        description={isAdmin ? 'Plan lessons for each class. Clashes for the class, teacher and room are checked automatically.' : 'Your weekly lessons at a glance.'}
+        title={c('timetable')}
+        description={isAdmin ? t('descAdmin') : isParent ? t('descParent') : t('descOther')}
         actions={
           <>
-            <Segmented label="Layout" value={view} onChange={setView} options={[{ value: 'week', label: 'Week' }, { value: 'day', label: 'Day' }]} />
+            <Segmented label={t('layout')} value={view} onChange={setView} options={[{ value: 'week', label: t('week') }, { value: 'day', label: t('day') }]} />
             {isAdmin && (classId || teacherId) && (
-              <Button variant="primary" icon={<Plus size={17} />} onClick={() => setEditing('new')}>Add lesson</Button>
+              <Button variant="primary" icon={<Plus size={17} />} onClick={() => setEditing('new')}>{t('addLesson')}</Button>
             )}
           </>
         }
@@ -102,46 +165,42 @@ export function TimetablePage() {
           {isAdmin && (
             <>
               <Segmented<Perspective>
-                label="View timetable by"
+                label={t('viewBy')}
                 value={teacherId ? 'teacher' : 'class'}
                 onChange={(v) => {
                   if (v === 'class' && classes.data?.[0]) setParams({ classId: String(classId ?? classes.data[0].id) });
                   if (v === 'teacher' && teachers.data?.[0]) setParams({ teacherId: String(teachers.data[0].id) });
                 }}
-                options={[{ value: 'class', label: 'By class' }, { value: 'teacher', label: 'By teacher' }]}
+                options={[{ value: 'class', label: t('byClass') }, { value: 'teacher', label: t('byTeacher') }]}
               />
               {teacherId ? (
-                <Select aria-label="Teacher" value={teacherId} onChange={(e) => setParams({ teacherId: e.target.value })}>
-                  {teachers.data?.map((t) => <option key={t.id} value={t.id}>{fullName(t)}{t.specialization ? ` — ${t.specialization}` : ''}</option>)}
+                <Select aria-label={t('teacher')} value={teacherId} onChange={(e) => setParams({ teacherId: e.target.value })}>
+                  {teachers.data?.map((tc) => <option key={tc.id} value={tc.id}>{fullName(tc)}{tc.specialization ? ` — ${tc.specialization}` : ''}</option>)}
                 </Select>
               ) : (
-                <Select aria-label="Class" value={classId ?? ''} onChange={(e) => setParams({ classId: e.target.value })}>
-                  {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <Select aria-label={c('class')} value={classId ?? ''} onChange={(e) => setParams({ classId: e.target.value })}>
+                  {classes.data?.map((cl) => <option key={cl.id} value={cl.id}>{cl.name}</option>)}
                 </Select>
               )}
             </>
           )}
           {user.role === 'teacher' && (
-            <Select aria-label="Whose timetable" value={classId ?? ''} onChange={(e) => setParams(e.target.value ? { classId: e.target.value } : {})}>
-              <option value="">My lessons</option>
-              {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name} (whole class)</option>)}
+            <Select aria-label={t('whose')} value={classId ?? ''} onChange={(e) => setParams(e.target.value ? { classId: e.target.value } : {})}>
+              <option value="">{t('myLessons')}</option>
+              {classes.data?.map((cl) => <option key={cl.id} value={cl.id}>{t('wholeClass', { name: cl.name })}</option>)}
             </Select>
           )}
-          {user.role === 'parent' && (classes.data?.length ?? 0) > 1 && (
-            <Select aria-label="Child's class" value={classId ?? ''} onChange={(e) => setParams({ classId: e.target.value })}>
-              {classes.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Select>
-          )}
+          {isParent && <ChildSwitcher children={children} value={child?.id ?? null} onChange={setChild} />}
           <div className="row" style={{ gap: 10, marginLeft: 'auto' }}>
             <CalendarClock size={18} className="subtle" aria-hidden />
             <span className="bold">{title}</span>
-            {!slotsQ.isLoading && <span className="small muted">{plural(totalPerWeek, 'lesson')} a week · {plural(subjects, 'subject')}</span>}
+            {!slotsQ.isLoading && !needsSelection && <span className="small muted">{t('perWeek', { lessons: totalPerWeek, subjects })}</span>}
           </div>
         </div>
       </Card>
 
-      {user.role === 'parent' && classes.data && classes.data.length === 0 ? (
-        <Card><EmptyState title="No timetable to show">Your account isn’t linked to a child in a class yet.</EmptyState></Card>
+      {isParent && !loadingChildren && !classId ? (
+        <Card><EmptyState title={t('noTimetable')}>{t('noChild')}</EmptyState></Card>
       ) : slotsQ.isLoading || needsSelection ? (
         <CardSkeleton rows={8} />
       ) : slotsQ.error ? (
@@ -150,10 +209,10 @@ export function TimetablePage() {
         <Card>
           <EmptyState
             icon={<CalendarClock size={26} />}
-            title="No lessons scheduled yet"
-            action={isAdmin ? <Button variant="primary" icon={<Plus size={17} />} onClick={() => setEditing('new')}>Add the first lesson</Button> : undefined}
+            title={t('noLessons')}
+            action={isAdmin ? <Button variant="primary" icon={<Plus size={17} />} onClick={() => setEditing('new')}>{t('addFirst')}</Button> : undefined}
           >
-            {isAdmin ? 'Add lessons to build this week’s timetable.' : 'Your timetable will appear here once the school has published it.'}
+            {isAdmin ? t('noLessonsAdmin') : t('noLessonsOther')}
           </EmptyState>
         </Card>
       ) : view === 'week' ? (
@@ -176,11 +235,12 @@ export function TimetablePage() {
 }
 
 // ---------------------------------------------------------------- Week grid
-function slotLine(s: TimetableSlot, perspective: Perspective) {
-  return perspective === 'class' ? s.teacherName ?? 'No teacher' : s.className;
+function slotLine(s: TimetableSlot, perspective: Perspective, noTeacher: string) {
+  return perspective === 'class' ? s.teacherName ?? noTeacher : s.className;
 }
 
 function WeekGrid({ slots, days, perspective, onSelect }: { slots: TimetableSlot[]; days: number[]; perspective: Perspective; onSelect?: (s: TimetableSlot) => void }) {
+  const t = useT(M);
   const start = Math.floor(Math.min(...slots.map((s) => toMin(s.startsAt))) / 60) * 60;
   const end = Math.ceil(Math.max(...slots.map((s) => toMin(s.endsAt))) / 60) * 60;
   const hours = Array.from({ length: (end - start) / 60 }, (_, i) => start + i * 60);
@@ -190,12 +250,12 @@ function WeekGrid({ slots, days, perspective, onSelect }: { slots: TimetableSlot
   return (
     <Card>
       <div className="table-wrap">
-        <div className="tt-grid" style={{ ['--days' as string]: days.length }} role="table" aria-label="Weekly timetable">
-          <div className="tt-head" role="columnheader"><span className="sr-only">Time</span></div>
+        <div className="tt-grid" style={{ ['--days' as string]: days.length }} role="table" aria-label={t('weekly')}>
+          <div className="tt-head" role="columnheader"><span className="sr-only">{t('time')}</span></div>
           {days.map((d) => (
             <div key={d} className={cx('tt-head', d === today && 'today')} role="columnheader" aria-current={d === today ? 'date' : undefined}>
               {DAYS[d - 1]}
-              {d === today && <span className="sr-only"> (today)</span>}
+              {d === today && <span className="sr-only">{t('todayMark')}</span>}
             </div>
           ))}
           <div className="tt-time" style={{ position: 'relative', height }} aria-hidden>
@@ -213,13 +273,13 @@ function WeekGrid({ slots, days, perspective, onSelect }: { slots: TimetableSlot
                   <>
                     <strong className="truncate">{s.subjectName}</strong>
                     <span className="truncate" style={{ display: 'block' }}>{s.startsAt}–{s.endsAt}</span>
-                    {h > 50 && <span className="truncate" style={{ display: 'block' }}>{slotLine(s, perspective)}{s.room ? ` · ${s.room}` : ''}</span>}
+                    {h > 50 && <span className="truncate" style={{ display: 'block' }}>{slotLine(s, perspective, t('noTeacher'))}{s.room ? ` · ${s.room}` : ''}</span>}
                   </>
                 );
-                const label = `${DAYS[d - 1]} ${s.startsAt} to ${s.endsAt}: ${s.subjectName}, ${slotLine(s, perspective)}${s.room ? `, room ${s.room}` : ''}`;
+                const label = t('lessonLabel', { day: DAYS[d - 1], start: s.startsAt, end: s.endsAt, subject: s.subjectName, who: slotLine(s, perspective, t('noTeacher')) }) + (s.room ? t('roomPart', { room: s.room }) : '');
                 const style = { top, height: h, ['--c' as string]: s.color };
                 return onSelect ? (
-                  <button key={s.id} type="button" className="tt-slot" style={style} onClick={() => onSelect(s)} aria-label={`Edit lesson: ${label}`}>{content}</button>
+                  <button key={s.id} type="button" className="tt-slot" style={style} onClick={() => onSelect(s)} aria-label={t('editLesson', { label })}>{content}</button>
                 ) : (
                   <div key={s.id} className="tt-slot" style={style} aria-label={label} role="note">{content}</div>
                 );
@@ -236,21 +296,22 @@ function WeekGrid({ slots, days, perspective, onSelect }: { slots: TimetableSlot
 function DayList({ slots, days, day, setDay, perspective, onSelect }: {
   slots: TimetableSlot[]; days: number[]; day: number; setDay: (d: number) => void; perspective: Perspective; onSelect?: (s: TimetableSlot) => void;
 }) {
+  const t = useT(M);
   const list = slots.filter((s) => s.dayOfWeek === day).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const today = isoWeekday();
   return (
     <Card>
       <div className="card-header" style={{ flexWrap: 'wrap' }}>
         <Segmented
-          label="Day"
+          label={t('day')}
           value={day}
           onChange={setDay}
-          options={days.map((d) => ({ value: d, label: <>{DAYS[d - 1]!.slice(0, 3)}{d === today && <span className="sr-only"> (today)</span>}</> }))}
+          options={days.map((d) => ({ value: d, label: <>{DAYS[d - 1]!.slice(0, 3)}{d === today && <span className="sr-only">{t('todayMark')}</span>}</> }))}
         />
-        <span className="small muted">{plural(list.length, 'lesson')}</span>
+        <span className="small muted">{list.length === 1 ? t('oneLesson') : t('lessons', { n: list.length })}</span>
       </div>
       {list.length === 0 ? (
-        <EmptyState icon={<Clock size={24} />} title={`No lessons on ${DAYS[day - 1]}`} />
+        <EmptyState icon={<Clock size={24} />} title={t('noLessonsOn', { day: DAYS[day - 1] })} />
       ) : (
         <div>
           {list.map((s) => {
@@ -261,14 +322,14 @@ function DayList({ slots, days, day, setDay, perspective, onSelect }: {
                 <div className="grow" style={{ textAlign: 'left' }}>
                   <div className="bold">{s.subjectName}</div>
                   <div className="small muted row" style={{ gap: 10 }}>
-                    <span>{slotLine(s, perspective)}</span>
+                    <span>{slotLine(s, perspective, t('noTeacher'))}</span>
                     {s.room && <span className="row" style={{ gap: 4 }}><MapPin size={13} aria-hidden /> {s.room}</span>}
                   </div>
                 </div>
               </>
             );
             return onSelect ? (
-              <button key={s.id} type="button" className="lesson" style={{ width: '100%', border: 0, borderBottom: '1px solid var(--border)', background: 'none', cursor: 'pointer' }} onClick={() => onSelect(s)} aria-label={`Edit ${s.subjectName} at ${s.startsAt}`}>
+              <button key={s.id} type="button" className="lesson" style={{ width: '100%', border: 0, borderBottom: '1px solid var(--border)', background: 'none', cursor: 'pointer' }} onClick={() => onSelect(s)} aria-label={t('editAt', { subject: s.subjectName, time: s.startsAt })}>
                 {body}
               </button>
             ) : (
@@ -282,21 +343,24 @@ function DayList({ slots, days, day, setDay, perspective, onSelect }: {
 }
 
 // ---------------------------------------------------------------- Edit modal (admin)
+// Typical 40-minute periods; any time can still be typed in.
 const PRESETS = [
-  ['08:00', '08:45'], ['08:50', '09:35'], ['09:40', '10:25'], ['10:45', '11:30'], ['11:35', '12:20'], ['13:00', '13:45'], ['13:50', '14:35'],
+  ['07:30', '08:10'], ['08:10', '08:50'], ['08:50', '09:30'], ['10:00', '10:40'], ['10:40', '11:20'], ['11:20', '12:00'], ['13:30', '14:10'],
 ] as const;
 
 function SlotModal({ slot, classId, teacherId, defaultDay, onClose }: {
   slot: TimetableSlot | null; classId: number | null; teacherId: number | null; defaultDay: number; onClose: () => void;
 }) {
+  const t = useT(M);
+  const { t: c } = useI18n();
   const qc = useQueryClient();
   const toast = useToast();
   const confirm = useConfirm();
   const [form, setForm] = useState<TimetableSlotInput>({
     courseId: slot?.courseId ?? 0,
     dayOfWeek: slot?.dayOfWeek ?? defaultDay,
-    startsAt: slot?.startsAt ?? '08:00',
-    endsAt: slot?.endsAt ?? '08:45',
+    startsAt: slot?.startsAt ?? PRESETS[0][0],
+    endsAt: slot?.endsAt ?? PRESETS[0][1],
     room: slot?.room ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -306,7 +370,7 @@ function SlotModal({ slot, classId, teacherId, defaultDay, onClose }: {
     queryKey: ['courses', classId ? { classId } : 'all'],
     queryFn: () => api.get<Course[]>('/courses', classId ? { classId } : undefined),
   });
-  const options = (courses.data ?? []).filter((c) => !teacherId || classId || c.teacherId === teacherId);
+  const options = (courses.data ?? []).filter((co) => !teacherId || classId || co.teacherId === teacherId);
 
   useEffect(() => {
     if (!form.courseId && options[0]) setForm((f) => ({ ...f, courseId: options[0]!.id }));
@@ -322,7 +386,7 @@ function SlotModal({ slot, classId, teacherId, defaultDay, onClose }: {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['timetable'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success(slot ? 'Lesson updated' : 'Lesson added');
+      toast.success(slot ? t('updated') : t('added'));
       onClose();
     },
     onError: (err) => {
@@ -336,7 +400,7 @@ function SlotModal({ slot, classId, teacherId, defaultDay, onClose }: {
     mutationFn: () => api.del(`/timetable/${slot!.id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['timetable'] });
-      toast.success('Lesson removed');
+      toast.success(t('removed'));
       onClose();
     },
     onError: (err) => toast.error(err),
@@ -344,10 +408,10 @@ function SlotModal({ slot, classId, teacherId, defaultDay, onClose }: {
 
   const submit = () => {
     const errs: Record<string, string> = {};
-    if (!form.courseId) errs.courseId = 'Choose a subject';
-    if (!form.startsAt) errs.startsAt = 'Required';
-    if (!form.endsAt) errs.endsAt = 'Required';
-    else if (form.startsAt && toMin(form.endsAt) <= toMin(form.startsAt)) errs.endsAt = 'Must be after the start time';
+    if (!form.courseId) errs.courseId = t('eSubject');
+    if (!form.startsAt) errs.startsAt = c('required');
+    if (!form.endsAt) errs.endsAt = c('required');
+    else if (form.startsAt && toMin(form.endsAt) <= toMin(form.startsAt)) errs.endsAt = t('eAfter');
     setErrors(errs);
     if (Object.keys(errs).length) return;
     save.mutate({ ...form, room: form.room?.trim() || null });
@@ -357,8 +421,8 @@ function SlotModal({ slot, classId, teacherId, defaultDay, onClose }: {
     <Modal
       open
       onClose={onClose}
-      title={slot ? 'Edit lesson' : 'Add a lesson'}
-      description={slot ? `${slot.subjectName} · ${slot.className}` : 'Pick a subject, a day and a time.'}
+      title={slot ? t('editTitle') : t('addTitle')}
+      description={slot ? `${slot.subjectName} · ${slot.className}` : t('pickHint')}
       onSubmit={submit}
       footer={
         <>
@@ -369,40 +433,40 @@ function SlotModal({ slot, classId, teacherId, defaultDay, onClose }: {
               style={{ marginRight: 'auto', color: 'var(--danger)' }}
               loading={remove.isPending}
               onClick={async () => {
-                if (await confirm({ title: 'Remove this lesson?', message: `${slot.subjectName} on ${DAYS[slot.dayOfWeek - 1]} at ${slot.startsAt} will be removed from the timetable.`, confirmLabel: 'Remove lesson', danger: true })) remove.mutate();
+                if (await confirm({ title: t('removeTitle'), message: t('removeBody', { subject: slot.subjectName, day: DAYS[slot.dayOfWeek - 1], time: slot.startsAt }), confirmLabel: t('removeLesson'), danger: true })) remove.mutate();
               }}
             >
-              Remove
+              {c('remove')}
             </Button>
           )}
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" loading={save.isPending}>{slot ? 'Save changes' : 'Add lesson'}</Button>
+          <Button onClick={onClose}>{c('cancel')}</Button>
+          <Button type="submit" variant="primary" loading={save.isPending}>{slot ? c('saveChanges') : t('addLesson')}</Button>
         </>
       }
     >
       <div className="stack">
         {clash && (
-          <Alert tone="danger" icon={<AlertTriangle size={20} />} title="This time isn’t free">
-            {clash}. Pick another time or room.
+          <Alert tone="danger" icon={<AlertTriangle size={20} />} title={t('notFree')}>
+            {clash}. {t('pickAnother')}
           </Alert>
         )}
-        <Field label="Subject" required error={errors.courseId} hint={courses.isLoading ? 'Loading subjects…' : undefined}>
+        <Field label={t('subject')} required error={errors.courseId} hint={courses.isLoading ? t('loadingSubjects') : undefined}>
           <Select value={form.courseId || ''} onChange={(e) => set('courseId', Number(e.target.value))}>
-            {options.length === 0 && <option value="">No subjects set up for this class</option>}
-            {options.map((c) => (
-              <option key={c.id} value={c.id}>
-                {classId ? c.subjectName : `${c.className} · ${c.subjectName}`}{c.teacherName ? ` — ${c.teacherName}` : ''}
+            {options.length === 0 && <option value="">{t('noSubjects')}</option>}
+            {options.map((co) => (
+              <option key={co.id} value={co.id}>
+                {classId ? co.subjectName : `${co.className} · ${co.subjectName}`}{co.teacherName ? ` — ${co.teacherName}` : ''}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="Day" required>
+        <Field label={t('day')} required>
           <Select value={form.dayOfWeek} onChange={(e) => set('dayOfWeek', Number(e.target.value))}>
             {DAYS.map((d, i) => <option key={d} value={i + 1}>{d}</option>)}
           </Select>
         </Field>
         <div>
-          <span className="field-label" id="period-presets">Quick pick a period</span>
+          <span className="field-label" id="period-presets">{t('quickPick')}</span>
           <div className="row row-wrap mt-1" style={{ gap: 6 }} role="group" aria-labelledby="period-presets">
             {PRESETS.map(([a, b], i) => (
               <Button key={a} size="sm" aria-pressed={form.startsAt === a && form.endsAt === b} variant={form.startsAt === a && form.endsAt === b ? 'primary' : 'secondary'} onClick={() => { set('startsAt', a); set('endsAt', b); }}>
@@ -412,17 +476,17 @@ function SlotModal({ slot, classId, teacherId, defaultDay, onClose }: {
           </div>
         </div>
         <div className="form-grid">
-          <Field label="Starts" required error={errors.startsAt}>
+          <Field label={t('starts')} required error={errors.startsAt}>
             <Input type="time" value={form.startsAt} onChange={(e) => set('startsAt', e.target.value)} />
           </Field>
-          <Field label="Ends" required error={errors.endsAt}>
+          <Field label={t('ends')} required error={errors.endsAt}>
             <Input type="time" value={form.endsAt} onChange={(e) => set('endsAt', e.target.value)} />
           </Field>
         </div>
-        <Field label="Room" hint="Leave blank to use the class’s usual room" error={errors.room}>
-          <Input value={form.room ?? ''} onChange={(e) => set('room', e.target.value)} placeholder="e.g. Science Lab 2" />
+        <Field label={t('room')} hint={t('roomHint')} error={errors.room}>
+          <Input value={form.room ?? ''} onChange={(e) => set('room', e.target.value)} placeholder={t('roomPh')} />
         </Field>
-        {slot?.teacherName && <p className="small muted">Taught by <Badge>{slot.teacherName}</Badge> — change the teacher on the class page.</p>}
+        {slot?.teacherName && <p className="small muted">{t('taughtBy')} <Badge>{slot.teacherName}</Badge> {t('changeTeacher')}</p>}
       </div>
     </Modal>
   );

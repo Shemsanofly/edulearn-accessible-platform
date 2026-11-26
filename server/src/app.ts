@@ -7,13 +7,16 @@ import helmet from 'helmet';
 import { errorHandler, notFound } from './lib/http.js';
 import { requireAuth } from './middleware/auth.js';
 import { academicsRouter } from './routes/academics.js';
-import { assessmentsRouter, gradebookRouter } from './routes/assessments.js';
+import { assessmentsRouter, assignmentsRouter, gradebookRouter } from './routes/assessments.js';
 import { attendanceRouter } from './routes/attendance.js';
 import { authRouter } from './routes/auth.js';
 import { communicationRouter } from './routes/communication.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { examsRouter } from './routes/exams.js';
 import { feesRouter } from './routes/fees.js';
 import { parentsRouter } from './routes/parents.js';
+import { platformRouter, publicRouter } from './routes/platform.js';
+import { reportsRouter } from './routes/reports.js';
 import { studentsRouter } from './routes/students.js';
 import { teachersRouter } from './routes/teachers.js';
 import { usersRouter } from './routes/users.js';
@@ -32,7 +35,9 @@ export function createApp() {
 
   const api = express.Router();
   api.use('/auth', authRouter);
+  api.use('/', publicRouter);
   api.use(requireAuth);
+  api.use('/', platformRouter);
   api.use('/', dashboardRouter);
   api.use('/students', studentsRouter);
   api.use('/teachers', teachersRouter);
@@ -40,9 +45,12 @@ export function createApp() {
   api.use('/users', usersRouter);
   api.use('/', academicsRouter);
   api.use('/attendance', attendanceRouter);
+  api.use('/', assignmentsRouter);
   api.use('/assessments', assessmentsRouter);
   api.use('/gradebook', gradebookRouter);
   api.use('/fees', feesRouter);
+  api.use('/', examsRouter);
+  api.use('/reports', reportsRouter);
   api.use('/', communicationRouter);
   api.use(() => {
     throw notFound('Endpoint');

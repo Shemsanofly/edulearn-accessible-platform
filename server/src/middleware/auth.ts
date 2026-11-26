@@ -4,6 +4,7 @@ import type { Role, SessionUser } from '../../../shared/types.js';
 import { config } from '../config.js';
 import { queryOne } from '../db/pool.js';
 import { forbidden, HttpError } from '../lib/http.js';
+import { PHOTO_URL } from '../lib/sql.js';
 
 export const SESSION_COOKIE = 'edulearn_session';
 
@@ -16,8 +17,9 @@ declare global {
   }
 }
 
-export function issueSession(res: Response, userId: number) {
-  const token = jwt.sign({ sub: String(userId) }, config.jwtSecret, { expiresIn: `${config.sessionDays}d` });
+/** `version` is users.session_version; bumping it in the database signs the user out everywhere. */
+export function issueSession(res: Response, userId: number, version: number) {
+  const token = jwt.sign({ sub: String(userId), ver: version }, config.jwtSecret, { expiresIn: `${config.sessionDays}d` });
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
@@ -32,21 +34,28 @@ export function clearSession(res: Response) {
 }
 
 export const SESSION_USER_SQL = `
-  SELECT id, email, role, first_name, last_name, phone, preferences
-  FROM users WHERE id = $1 AND is_active`;
+  SELECT u.id, u.email, u.role, u.first_name, u.last_name, u.phone, u.preferences, ${PHOTO_URL} AS photo_url
+  FROM users u WHERE u.id = $1 AND u.is_active`;
 
 export async function requireAuth(req: Request, _res: Response, next: NextFunction) {
   const token = req.cookies?.[SESSION_COOKIE];
   if (!token) throw new HttpError(401, 'Please sign in to continue');
   let userId: number;
+  let version: number;
   try {
     const payload = jwt.verify(token, config.jwtSecret) as jwt.JwtPayload;
     userId = Number(payload.sub);
+    version = Number(payload.ver ?? 1);
   } catch {
     throw new HttpError(401, 'Your session has expired. Please sign in again.');
   }
-  const user = await queryOne<SessionUser>(SESSION_USER_SQL, [userId]);
+  const user = await queryOne<SessionUser & { sessionVersion: number }>(
+    SESSION_USER_SQL.replace('AS photo_url', 'AS photo_url, u.session_version'),
+    [userId],
+  );
   if (!user) throw new HttpError(401, 'Your account is no longer active');
+  if (user.sessionVersion !== version) throw new HttpError(401, 'You were signed out because your password changed. Please sign in again.');
+  delete (user as Partial<typeof user>).sessionVersion;
   req.user = user;
   next();
 }

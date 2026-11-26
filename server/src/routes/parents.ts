@@ -4,7 +4,10 @@ import { z } from 'zod';
 import type { CreatedAccount, ParentListItem } from '../../../shared/types.js';
 import { query, queryOne, transaction } from '../db/pool.js';
 import { createUser, updateUser } from '../lib/accounts.js';
+import { audit } from '../lib/audit.js';
+import { phone } from '../lib/phone.js';
 import { intParam, notFound, pageParams, parse, provided } from '../lib/http.js';
+import { PHOTO_URL } from '../lib/sql.js';
 import { email, id, name, optionalText, password } from '../lib/validators.js';
 import { requireRole } from '../middleware/auth.js';
 
@@ -12,7 +15,7 @@ export const parentsRouter = Router();
 parentsRouter.use(requireRole('admin'));
 
 const PARENT_SELECT = `
-  SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.is_active,
+  SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.is_active, ${PHOTO_URL} AS photo_url,
          COALESCE((SELECT json_agg(json_build_object(
                     'id', su.id, 'firstName', su.first_name, 'lastName', su.last_name,
                     'relationship', g.relationship, 'className', c.name) ORDER BY su.first_name)
@@ -30,7 +33,7 @@ const parentSchema = z.object({
   lastName: name,
   email,
   password: password.optional(),
-  phone: optionalText(40),
+  phone,
   isActive: z.boolean().optional(),
   children: z.array(childSchema).max(20).optional(),
 });
@@ -80,6 +83,7 @@ parentsRouter.post('/', async (req, res) => {
     if (body.children) await setChildren(db, acc.id, body.children);
     return acc;
   });
+  await audit(req, { action: 'create', entity: 'parent', entityId: account.id, summary: `Registered parent ${body.firstName} ${body.lastName}`, details: { children: body.children?.length ?? 0 } });
   const payload: CreatedAccount<ParentListItem> = { record: (await loadParent(account.id))!, temporaryPassword: account.temporaryPassword };
   res.status(201).json(payload);
 });
@@ -92,11 +96,14 @@ parentsRouter.patch('/:id', async (req, res) => {
     await updateUser(db, parentId, body);
     if (body.children) await setChildren(db, parentId, body.children);
   });
-  res.json(await loadParent(parentId));
+  const updated = await loadParent(parentId);
+  await audit(req, { action: 'update', entity: 'parent', entityId: parentId, summary: `Updated ${updated!.firstName} ${updated!.lastName}`, details: { fields: Object.keys(body) } });
+  res.json(updated);
 });
 
 parentsRouter.delete('/:id', async (req, res) => {
-  const row = await queryOne("DELETE FROM users WHERE id = $1 AND role = 'parent' RETURNING id", [intParam(req.params.id)]);
+  const row = await queryOne<{ name: string }>("DELETE FROM users WHERE id = $1 AND role = 'parent' RETURNING first_name || ' ' || last_name AS name", [intParam(req.params.id)]);
   if (!row) throw notFound('Parent');
+  await audit(req, { action: 'delete', entity: 'parent', entityId: intParam(req.params.id), summary: `Deleted parent ${row.name}` });
   res.status(204).end();
 });

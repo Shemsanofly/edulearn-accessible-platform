@@ -3,8 +3,9 @@ import { z } from 'zod';
 import type { ClassDetail, ClassListItem, Course, StudentListItem, Subject, Term, TimetableSlot } from '../../../shared/types.js';
 import { query, queryOne, transaction } from '../db/pool.js';
 import { assertCanTakeAttendance, assertCanViewCourse } from '../lib/access.js';
+import { audit } from '../lib/audit.js';
 import { badRequest, conflict, forbidden, intParam, notFound, parse, provided } from '../lib/http.js';
-import { COURSE_SELECT, SLOT_SELECT, STUDENT_SELECT } from '../lib/sql.js';
+import { COURSE_SELECT, SLOT_SELECT, STUDENT_SELECT, TERM_SELECT } from '../lib/sql.js';
 import { id, isoDate, optionalText, time } from '../lib/validators.js';
 import { me, requireRole } from '../middleware/auth.js';
 
@@ -67,6 +68,7 @@ academicsRouter.post('/classes', adminOnly, async (req, res) => {
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
     [b.name, b.gradeLevel, b.section, b.room, b.capacity, b.homeroomTeacherId ?? null],
   );
+  await audit(req, { action: 'create', entity: 'class', entityId: row!.id, summary: `Created class ${b.name}` });
   res.status(201).json(await queryOne<ClassListItem>(`${CLASS_SELECT} WHERE c.id = $1`, [row!.id]));
 });
 
@@ -83,6 +85,7 @@ academicsRouter.patch('/classes/:id', adminOnly, async (req, res) => {
       b.capacity ?? null, 'homeroomTeacherId' in b, b.homeroomTeacherId ?? null],
   );
   if (!row) throw notFound('Class');
+  await audit(req, { action: 'update', entity: 'class', entityId: classId, summary: 'Updated class details', details: { fields: Object.keys(b) } });
   res.json(await queryOne<ClassListItem>(`${CLASS_SELECT} WHERE c.id = $1`, [classId]));
 });
 
@@ -92,8 +95,9 @@ academicsRouter.delete('/classes/:id', adminOnly, async (req, res) => {
   if (occupied && occupied.n > 0) {
     throw conflict(`This class still has ${occupied.n} student${occupied.n === 1 ? '' : 's'}. Move them to another class first.`);
   }
-  const row = await queryOne('DELETE FROM classes WHERE id = $1 RETURNING id', [classId]);
+  const row = await queryOne<{ name: string }>('DELETE FROM classes WHERE id = $1 RETURNING name', [classId]);
   if (!row) throw notFound('Class');
+  await audit(req, { action: 'delete', entity: 'class', entityId: classId, summary: `Deleted class ${row.name}` });
   res.status(204).end();
 });
 
@@ -110,6 +114,7 @@ academicsRouter.post('/classes/:id/students', adminOnly, async (req, res) => {
     throw conflict(`That would put ${cls.n + studentIds.length} students in a class with room for ${cls.capacity}`);
   }
   await query('UPDATE students SET class_id = $1 WHERE user_id = ANY($2)', [classId, studentIds]);
+  await audit(req, { action: 'update', entity: 'class', entityId: classId, summary: `Moved ${studentIds.length} student${studentIds.length === 1 ? '' : 's'} into the class` });
   res.status(204).end();
 });
 
@@ -152,6 +157,7 @@ academicsRouter.post('/courses', adminOnly, async (req, res) => {
     'INSERT INTO class_subjects (class_id, subject_id, teacher_id) VALUES ($1, $2, $3) RETURNING id',
     [b.classId, b.subjectId, b.teacherId ?? null],
   );
+  await audit(req, { action: 'create', entity: 'course', entityId: row!.id, summary: 'Added a subject to a class', details: b });
   res.status(201).json(await queryOne<Course>(`${COURSE_SELECT} WHERE cs.id = $1`, [row!.id]));
 });
 
@@ -160,12 +166,14 @@ academicsRouter.patch('/courses/:id', adminOnly, async (req, res) => {
   const b = parse(z.object({ teacherId: id.nullable() }), req.body);
   const row = await queryOne('UPDATE class_subjects SET teacher_id = $2 WHERE id = $1 RETURNING id', [courseId, b.teacherId]);
   if (!row) throw notFound('Course');
+  await audit(req, { action: 'update', entity: 'course', entityId: courseId, summary: 'Changed the subject teacher', details: b });
   res.json(await queryOne<Course>(`${COURSE_SELECT} WHERE cs.id = $1`, [courseId]));
 });
 
 academicsRouter.delete('/courses/:id', adminOnly, async (req, res) => {
   const row = await queryOne('DELETE FROM class_subjects WHERE id = $1 RETURNING id', [intParam(req.params.id)]);
   if (!row) throw notFound('Course');
+  await audit(req, { action: 'delete', entity: 'course', entityId: intParam(req.params.id), summary: 'Removed a subject from a class' });
   res.status(204).end();
 });
 
@@ -185,10 +193,12 @@ academicsRouter.get('/subjects', async (_req, res) => {
 
 academicsRouter.post('/subjects', adminOnly, async (req, res) => {
   const b = parse(subjectSchema, req.body);
-  res.status(201).json(await queryOne<Subject>(
+  const created = await queryOne<Subject>(
     'INSERT INTO subjects (name, code, color, description) VALUES ($1, $2, $3, $4) RETURNING id, name, code, color, description',
     [b.name, b.code, b.color, b.description],
-  ));
+  );
+  await audit(req, { action: 'create', entity: 'subject', entityId: created!.id, summary: `Added subject ${b.name}` });
+  res.status(201).json(created);
 });
 
 academicsRouter.patch('/subjects/:id', adminOnly, async (req, res) => {
@@ -200,6 +210,7 @@ academicsRouter.patch('/subjects/:id', adminOnly, async (req, res) => {
     [intParam(req.params.id), b.name ?? null, b.code ?? null, b.color ?? null, 'description' in b, b.description ?? null],
   );
   if (!row) throw notFound('Subject');
+  await audit(req, { action: 'update', entity: 'subject', entityId: row.id, summary: `Updated subject ${row.name}` });
   res.json(row);
 });
 
@@ -207,8 +218,9 @@ academicsRouter.delete('/subjects/:id', adminOnly, async (req, res) => {
   const subjectId = intParam(req.params.id);
   const used = await queryOne<{ n: number }>('SELECT COUNT(*)::int AS n FROM class_subjects WHERE subject_id = $1', [subjectId]);
   if (used && used.n > 0) throw conflict(`This subject is taught in ${used.n} class${used.n === 1 ? '' : 'es'}. Remove it from those classes first.`);
-  const row = await queryOne('DELETE FROM subjects WHERE id = $1 RETURNING id', [subjectId]);
+  const row = await queryOne<{ name: string }>('DELETE FROM subjects WHERE id = $1 RETURNING name', [subjectId]);
   if (!row) throw notFound('Subject');
+  await audit(req, { action: 'delete', entity: 'subject', entityId: subjectId, summary: `Deleted subject ${row.name}` });
   res.status(204).end();
 });
 
@@ -220,11 +232,12 @@ const termSchema = z.object({
   startsOn: isoDate,
   endsOn: isoDate,
   isCurrent: z.boolean().default(false),
+  academicYearId: id.nullish(),
 });
-const TERM_COLS = 'id, name, starts_on, ends_on, is_current';
+const loadTerm = (termId: number) => queryOne<Term>(`${TERM_SELECT} WHERE t.id = $1`, [termId]);
 
 academicsRouter.get('/terms', async (_req, res) => {
-  res.json(await query<Term>(`SELECT ${TERM_COLS} FROM terms ORDER BY starts_on DESC`));
+  res.json(await query<Term>(`${TERM_SELECT} ORDER BY t.starts_on DESC`));
 });
 
 academicsRouter.post('/terms', adminOnly, async (req, res) => {
@@ -232,13 +245,15 @@ academicsRouter.post('/terms', adminOnly, async (req, res) => {
   if (b.endsOn <= b.startsOn) throw badRequest('The term must end after it starts', { endsOn: 'Must be after the start date' });
   const term = await transaction(async (db) => {
     if (b.isCurrent) await query('UPDATE terms SET is_current = false WHERE is_current', [], db);
-    return queryOne<Term>(
-      `INSERT INTO terms (name, starts_on, ends_on, is_current) VALUES ($1, $2, $3, $4) RETURNING ${TERM_COLS}`,
-      [b.name, b.startsOn, b.endsOn, b.isCurrent],
+    return queryOne<{ id: number }>(
+      `INSERT INTO terms (name, starts_on, ends_on, is_current, academic_year_id)
+       VALUES ($1, $2, $3, $4, COALESCE($5, (SELECT id FROM academic_years WHERE is_current))) RETURNING id`,
+      [b.name, b.startsOn, b.endsOn, b.isCurrent, b.academicYearId ?? null],
       db,
     );
   });
-  res.status(201).json(term);
+  await audit(req, { action: 'create', entity: 'term', entityId: term!.id, summary: `Created term ${b.name}` });
+  res.status(201).json(await loadTerm(term!.id));
 });
 
 academicsRouter.patch('/terms/:id', adminOnly, async (req, res) => {
@@ -246,20 +261,23 @@ academicsRouter.patch('/terms/:id', adminOnly, async (req, res) => {
   const b = provided(parse(termSchema.partial(), req.body), req.body);
   const term = await transaction(async (db) => {
     if (b.isCurrent) await query('UPDATE terms SET is_current = false WHERE is_current AND id <> $1', [termId], db);
-    return queryOne<Term>(
+    return queryOne<{ id: number }>(
       `UPDATE terms SET name = COALESCE($2, name), starts_on = COALESCE($3, starts_on), ends_on = COALESCE($4, ends_on),
-         is_current = COALESCE($5, is_current) WHERE id = $1 RETURNING ${TERM_COLS}`,
-      [termId, b.name ?? null, b.startsOn ?? null, b.endsOn ?? null, b.isCurrent ?? null],
+         is_current = COALESCE($5, is_current), academic_year_id = CASE WHEN $6::boolean THEN $7 ELSE academic_year_id END
+       WHERE id = $1 RETURNING id`,
+      [termId, b.name ?? null, b.startsOn ?? null, b.endsOn ?? null, b.isCurrent ?? null, 'academicYearId' in b, b.academicYearId ?? null],
       db,
     );
   });
   if (!term) throw notFound('Term');
-  res.json(term);
+  await audit(req, { action: 'update', entity: 'term', entityId: termId, summary: 'Updated term', details: { fields: Object.keys(b) } });
+  res.json(await loadTerm(termId));
 });
 
 academicsRouter.delete('/terms/:id', adminOnly, async (req, res) => {
-  const row = await queryOne('DELETE FROM terms WHERE id = $1 RETURNING id', [intParam(req.params.id)]);
+  const row = await queryOne<{ name: string }>('DELETE FROM terms WHERE id = $1 RETURNING name', [intParam(req.params.id)]);
   if (!row) throw notFound('Term');
+  await audit(req, { action: 'delete', entity: 'term', entityId: intParam(req.params.id), summary: `Deleted term ${row.name}` });
   res.status(204).end();
 });
 
@@ -341,6 +359,7 @@ academicsRouter.post('/timetable', adminOnly, async (req, res) => {
     'INSERT INTO timetable_slots (class_subject_id, day_of_week, starts_at, ends_at, room) VALUES ($1, $2, $3, $4, $5) RETURNING id',
     [b.courseId, b.dayOfWeek, b.startsAt, b.endsAt, b.room],
   );
+  await audit(req, { action: 'create', entity: 'timetable', entityId: row!.id, summary: 'Added a lesson to the timetable', details: b });
   res.status(201).json(await queryOne<TimetableSlot>(`${SLOT_SELECT} WHERE ts.id = $1`, [row!.id]));
 });
 
@@ -353,11 +372,13 @@ academicsRouter.put('/timetable/:id', adminOnly, async (req, res) => {
     [slotId, b.courseId, b.dayOfWeek, b.startsAt, b.endsAt, b.room],
   );
   if (!row) throw notFound('Lesson');
+  await audit(req, { action: 'update', entity: 'timetable', entityId: slotId, summary: 'Changed a lesson on the timetable', details: b });
   res.json(await queryOne<TimetableSlot>(`${SLOT_SELECT} WHERE ts.id = $1`, [slotId]));
 });
 
 academicsRouter.delete('/timetable/:id', adminOnly, async (req, res) => {
   const row = await queryOne('DELETE FROM timetable_slots WHERE id = $1 RETURNING id', [intParam(req.params.id)]);
   if (!row) throw notFound('Lesson');
+  await audit(req, { action: 'delete', entity: 'timetable', entityId: intParam(req.params.id), summary: 'Removed a lesson from the timetable' });
   res.status(204).end();
 });

@@ -7,6 +7,8 @@ import type {
 import { query, queryOne, transaction } from '../db/pool.js';
 import { assertCanViewStudent } from '../lib/access.js';
 import { createUser, nextCode, updateUser } from '../lib/accounts.js';
+import { audit } from '../lib/audit.js';
+import { phone } from '../lib/phone.js';
 import { intParam, notFound, pageParams, parse, provided } from '../lib/http.js';
 import { ASSESSMENT_SELECT, INVOICE_SELECT, STUDENT_SELECT } from '../lib/sql.js';
 import { email, id, isoDate, name, optionalText, password } from '../lib/validators.js';
@@ -19,7 +21,7 @@ const studentSchema = z.object({
   lastName: name,
   email,
   password: password.optional(),
-  phone: optionalText(40),
+  phone,
   admissionNo: z.string().trim().max(40).optional(),
   classId: id.nullish(),
   dateOfBirth: isoDate.nullish(),
@@ -98,6 +100,7 @@ studentsRouter.post('/', requireRole('admin'), async (req, res) => {
     );
     return account;
   });
+  await audit(req, { action: 'create', entity: 'student', entityId: result.id, summary: `Enrolled ${body.firstName} ${body.lastName}` });
   const payload: CreatedAccount<StudentDetail> = {
     record: (await loadStudent(result.id))!,
     temporaryPassword: result.temporaryPassword,
@@ -134,13 +137,16 @@ studentsRouter.patch('/:id', requireRole('admin'), async (req, res) => {
       db,
     );
   });
-  res.json(await loadStudent(studentId));
+  const updated = await loadStudent(studentId);
+  await audit(req, { action: 'update', entity: 'student', entityId: studentId, summary: `Updated ${updated!.firstName} ${updated!.lastName}`, details: { fields: Object.keys(body) } });
+  res.json(updated);
 });
 
 studentsRouter.delete('/:id', requireRole('admin'), async (req, res) => {
   const studentId = intParam(req.params.id);
-  const row = await queryOne("DELETE FROM users WHERE id = $1 AND role = 'student' RETURNING id", [studentId]);
+  const row = await queryOne<{ name: string }>("DELETE FROM users WHERE id = $1 AND role = 'student' RETURNING first_name || ' ' || last_name AS name", [studentId]);
   if (!row) throw notFound('Student');
+  await audit(req, { action: 'delete', entity: 'student', entityId: studentId, summary: `Deleted student ${row.name}` });
   res.status(204).end();
 });
 
