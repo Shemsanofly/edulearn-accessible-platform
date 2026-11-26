@@ -889,6 +889,9 @@ button.tt-slot:hover { box-shadow: var(--shadow); }
   max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr);
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow);
 }
+.auth-panel.compact { grid-template-columns: 1fr; max-width: 480px; border-radius: var(--radius-lg); }
+.auth-panel.compact .auth-form { padding: 40px 40px 32px; }
+.auth-foot p + p { margin-top: 6px; }
 .auth-story { background: var(--ink); color: var(--on-ink-muted); padding: 48px 44px; display: flex; flex-direction: column; gap: 18px; }
 .auth-story .eyebrow { color: var(--ink-accent); margin: 0; }
 .auth-story h2 { font-family: var(--font-display); font-weight: 500; font-size: 2.05rem; line-height: 1.12; letter-spacing: -0.02em; color: var(--on-ink); }
@@ -907,7 +910,7 @@ button.tt-slot:hover { box-shadow: var(--shadow); }
   .auth-stage { padding: 20px 14px 40px; }
   .auth-panel { grid-template-columns: 1fr; border-radius: var(--radius-lg); max-width: 560px; }
   .auth-story { display: none; }
-  .auth-form { padding: 30px 22px 28px; }
+  .auth-form, .auth-panel.compact .auth-form { padding: 30px 22px 28px; }
   .auth-form h1 { font-size: 1.6rem; }
 }
 
