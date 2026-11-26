@@ -1,9 +1,17 @@
 import type { AttendanceStatus, InvoiceStatus, Role } from '../../../shared/types';
 
-let currency = 'USD';
+let currency = 'TZS';
+let locale = 'en-GB';
+let language: 'en' | 'sw' = 'en';
 export const setCurrency = (c: string) => {
   currency = c;
 };
+/** Called by the i18n provider; all formatting below follows the chosen language. */
+export const setFormatLocale = (l: string, lang: 'en' | 'sw') => {
+  locale = l;
+  language = lang;
+};
+export const currentLanguage = () => language;
 
 const parseDay = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`);
 
@@ -16,16 +24,16 @@ export const toIso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export const formatDate = (iso: string | null | undefined, opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }) =>
-  iso ? parseDay(iso).toLocaleDateString(undefined, opts) : '—';
+  iso ? parseDay(iso).toLocaleDateString(locale, opts) : '—';
 
 export const formatShortDate = (iso: string | null | undefined) => formatDate(iso, { day: 'numeric', month: 'short' });
 
 export const formatDateTime = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  new Date(iso).toLocaleString(locale, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 
 /** "in 3 days", "yesterday", "2 hours ago" */
 export function relativeTime(iso: string): string {
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const isDay = iso.length === 10;
   if (isDay) {
     const diff = Math.round((parseDay(iso).getTime() - parseDay(todayIso()).getTime()) / 864e5);
@@ -35,7 +43,7 @@ export function relativeTime(iso: string): string {
   }
   const secs = (new Date(iso).getTime() - Date.now()) / 1000;
   const abs = Math.abs(secs);
-  if (abs < 60) return 'just now';
+  if (abs < 60) return language === 'sw' ? 'sasa hivi' : 'just now';
   if (abs < 3600) return rtf.format(Math.round(secs / 60), 'minute');
   if (abs < 86400) return rtf.format(Math.round(secs / 3600), 'hour');
   if (abs < 86400 * 7) return rtf.format(Math.round(secs / 86400), 'day');
@@ -44,8 +52,16 @@ export function relativeTime(iso: string): string {
 
 export const daysUntil = (iso: string) => Math.round((parseDay(iso).getTime() - parseDay(todayIso()).getTime()) / 864e5);
 
-export const money = (n: number) =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: n % 1 === 0 ? 0 : 2 }).format(n);
+/** Money in the school's currency, e.g. "TZS 450,000" (English) or "TSh 450,000" (Kiswahili). */
+export const money = (n: number) => {
+  try {
+    return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: n % 1 === 0 ? 0 : 2 }).format(n);
+  } catch {
+    return `${currency} ${n.toLocaleString()}`;
+  }
+};
+
+export const number = (n: number) => new Intl.NumberFormat(locale).format(n);
 
 export const percent = (n: number | null | undefined, digits = 0) => (n === null || n === undefined ? '—' : `${n.toFixed(digits)}%`);
 
@@ -92,7 +108,20 @@ export const ROLE_META: Record<Role, { label: string; color: string }> = {
   parent: { label: 'Parent', color: 'var(--role-parent)' },
 };
 
-export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAYS_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAYS_SW = ['Jumatatu', 'Jumanne', 'Jumatano', 'Alhamisi', 'Ijumaa', 'Jumamosi', 'Jumapili'];
+/** Day names in the current language, Monday first (index 0 = ISO day 1). */
+export const DAYS = new Proxy(DAYS_EN, { get: (target, prop) => Reflect.get(language === 'sw' ? DAYS_SW : target, prop) }) as string[];
+
+/** "Form 2" / "Kidato cha 2" (or "Standard 3" / "Darasa la 3"), using the school's level label. */
+export function levelName(level: number, label = 'Form') {
+  if (language === 'sw') {
+    const l = label.toLowerCase();
+    if (l === 'form') return `Kidato cha ${level}`;
+    if (l === 'standard' || l === 'grade' || l === 'class') return `Darasa la ${level}`;
+  }
+  return `${label} ${level}`;
+}
 export const isoWeekday = () => ((new Date().getDay() + 6) % 7) + 1;
 
 /** Stable pleasant colour for an avatar based on a name. */

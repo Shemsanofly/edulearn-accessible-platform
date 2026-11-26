@@ -2,6 +2,12 @@ import { Check, Palette, Type } from 'lucide-react';
 import type { Accent } from '../../../shared/types';
 import { useAuth } from '../lib/auth';
 import { loadPreferences } from '../lib/preferences';
+import { LanguageSwitch, useT } from '../lib/i18n';
+
+const M = {
+  en: { colour: 'Colour theme', mode: 'Mode', light: 'Light', dark: 'Dark', auto: 'Auto', text: 'Text size', contrast: 'High contrast', contrastHint: 'Stronger colours and borders', font: 'Readable font', fontHint: 'Atkinson Hyperlegible, designed for low vision', motion: 'Reduce motion', motionHint: 'Turn off animations', language: 'Language', title: 'Display & accessibility' },
+  sw: { colour: 'Rangi', mode: 'Mwonekano', light: 'Mwanga', dark: 'Giza', auto: 'Kiotomatiki', text: 'Ukubwa wa maandishi', contrast: 'Utofautishaji mkubwa', contrastHint: 'Rangi na mipaka iliyo wazi zaidi', font: 'Herufi rahisi kusoma', fontHint: 'Atkinson Hyperlegible, kwa wenye uoni hafifu', motion: 'Punguza miondoko', motionHint: 'Zima michoro inayosogea', language: 'Lugha', title: 'Mwonekano na ufikivu' },
+};
 import { Segmented, Toggle } from './ui';
 
 export const FONT_SCALES = [
@@ -12,6 +18,7 @@ export const FONT_SCALES = [
 
 /** The colour themes a person can choose. `swatch` previews the theme's own gradient. */
 export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
+  { id: 'navy', label: 'Navy', swatch: 'linear-gradient(135deg, #1b3a6b, #0d9488)' },
   { id: 'indigo', label: 'Indigo', swatch: 'linear-gradient(135deg, #4338ca, #9333ea)' },
   { id: 'ocean', label: 'Ocean', swatch: 'linear-gradient(135deg, #075985, #0d9488)' },
   { id: 'forest', label: 'Forest', swatch: 'linear-gradient(135deg, #065f46, #65a30d)' },
@@ -23,7 +30,7 @@ export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
 export function ColourPicker() {
   const { user, updatePreferences } = useAuth();
   const p = user?.preferences && Object.keys(user.preferences).length ? user.preferences : loadPreferences();
-  const current = p.accent ?? 'indigo';
+  const current = p.accent ?? 'navy';
   return (
     <div className="swatches" role="radiogroup" aria-label="Colour theme">
       {ACCENTS.map((a) => (
@@ -47,37 +54,43 @@ export function ColourPicker() {
 /** Settings that make the app easier to read and use. Shared by the top-bar popover and the Settings page. */
 export function AccessibilitySettings() {
   const { user, updatePreferences } = useAuth();
+  const t = useT(M);
   const p = user?.preferences && Object.keys(user.preferences).length ? user.preferences : loadPreferences();
   return (
     <div>
       <div style={{ padding: '6px 0 14px' }}>
-        <div className="row bold" style={{ gap: 8, marginBottom: 10 }}><Palette size={18} aria-hidden /> Colour theme</div>
+        <div className="row bold" style={{ gap: 8, marginBottom: 10 }}><Palette size={18} aria-hidden /> {t('colour')}</div>
         <ColourPicker />
       </div>
       <div className="row between" style={{ padding: '12px 0', borderTop: '1px solid var(--border)' }}>
-        <span className="bold">Mode</span>
+        <span className="bold">{t('language')}</span>
+        <LanguageSwitch />
+      </div>
+      <div className="row between" style={{ padding: '12px 0', borderTop: '1px solid var(--border)' }}>
+        <span className="bold">{t('mode')}</span>
         <Segmented
-          label="Light or dark mode"
-          options={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }, { value: 'system', label: 'Auto' }]}
+          label={t('mode')}
+          options={[{ value: 'light', label: t('light') }, { value: 'dark', label: t('dark') }, { value: 'system', label: t('auto') }]}
           value={p.theme ?? 'system'}
           onChange={(v) => updatePreferences({ theme: v })}
         />
       </div>
       <div className="row between" style={{ padding: '12px 0', borderTop: '1px solid var(--border)' }}>
-        <span className="row bold" style={{ gap: 8 }}><Type size={18} aria-hidden /> Text size</span>
-        <Segmented label="Text size" options={FONT_SCALES} value={p.fontScale ?? 1} onChange={(v) => updatePreferences({ fontScale: v })} />
+        <span className="row bold" style={{ gap: 8 }}><Type size={18} aria-hidden /> {t('text')}</span>
+        <Segmented label={t('text')} options={FONT_SCALES} value={p.fontScale ?? 1} onChange={(v) => updatePreferences({ fontScale: v })} />
       </div>
-      <Toggle label="High contrast" description="Stronger colours and borders" checked={!!p.highContrast} onChange={(v) => updatePreferences({ highContrast: v })} />
-      <Toggle label="Readable font" description="Atkinson Hyperlegible, designed for low vision" checked={!!p.dyslexiaFont} onChange={(v) => updatePreferences({ dyslexiaFont: v })} />
-      <Toggle label="Reduce motion" description="Turn off animations" checked={!!p.reducedMotion} onChange={(v) => updatePreferences({ reducedMotion: v })} />
+      <Toggle label={t('contrast')} description={t('contrastHint')} checked={!!p.highContrast} onChange={(v) => updatePreferences({ highContrast: v })} />
+      <Toggle label={t('font')} description={t('fontHint')} checked={!!p.dyslexiaFont} onChange={(v) => updatePreferences({ dyslexiaFont: v })} />
+      <Toggle label={t('motion')} description={t('motionHint')} checked={!!p.reducedMotion} onChange={(v) => updatePreferences({ reducedMotion: v })} />
     </div>
   );
 }
 
 export function AccessibilityPanel({ onClose }: { onClose: () => void }) {
+  const t = useT(M);
   return (
-    <div className="popover" style={{ width: 360, padding: '16px 18px', zIndex: 40, maxHeight: 'calc(100vh - 90px)', overflowY: 'auto' }} role="dialog" aria-label="Display and accessibility" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-      <h2 style={{ fontSize: '1rem', marginBottom: 10 }}>Display &amp; accessibility</h2>
+    <div className="popover" style={{ width: 360, padding: '16px 18px', zIndex: 40, maxHeight: 'calc(100vh - 90px)', overflowY: 'auto' }} role="dialog" aria-label={t('title')} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+      <h2 style={{ fontSize: '1rem', marginBottom: 10 }}>{t('title')}</h2>
       <AccessibilitySettings />
     </div>
   );

@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import type { SearchResults } from '../../../shared/types';
 import { api } from '../lib/api';
 import { useUser } from '../lib/auth';
-import { NAV, SETTINGS_ITEM } from './nav';
+import { useI18n } from '../lib/i18n';
+import { NAV, NOTIFICATIONS_ITEM, SETTINGS_ITEM } from './nav';
 import { useDebounced } from './ui';
 
 interface Item {
@@ -20,6 +21,7 @@ interface Item {
 /** Ctrl/⌘+K: jump to any page, or find a student, teacher, parent or class. */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const user = useUser();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
@@ -43,9 +45,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
   const items = useMemo<Item[]>(() => {
     const needle = q.trim().toLowerCase();
-    const pages = [...NAV[user.role].flatMap((g) => g.items), SETTINGS_ITEM]
-      .filter((p) => !needle || `${p.label} ${p.keywords ?? ''}`.toLowerCase().includes(needle))
-      .map((p) => ({ group: 'Pages', label: p.label, icon: <p.icon size={18} />, to: p.to }));
+    const pages = [...NAV[user.role].flatMap((g) => g.items), SETTINGS_ITEM, NOTIFICATIONS_ITEM]
+      .filter((p) => !needle || `${t(p.label)} ${p.label} ${p.keywords ?? ''}`.toLowerCase().includes(needle))
+      .map((p) => ({ group: 'Pages', label: t(p.label), icon: <p.icon size={18} />, to: p.to }));
     const people: Item[] = [];
     if (data && needle.length >= 2) {
       data.students.forEach((s) => people.push({ group: 'Students', label: s.name, detail: s.detail, icon: <GraduationCap size={18} />, to: `/students/${s.id}` }));
@@ -56,7 +58,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       }
     }
     return [...people, ...pages].slice(0, 30);
-  }, [q, data, user.role]);
+  }, [q, data, user.role, t]);
 
   useEffect(() => setActive(0), [items.length]);
 

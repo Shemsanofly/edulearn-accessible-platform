@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '../lib/i18n';
 import { Button, cx } from './ui';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -60,6 +61,7 @@ interface ModalProps {
 
 export function Modal({ open, onClose, title, description, children, footer, size = 'md', variant = 'dialog', onSubmit }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
   const titleId = useId();
   const descId = useId();
   useDialogBehaviour(open, onClose, ref);
@@ -87,7 +89,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             <h2 id={titleId}>{title}</h2>
             {description && <p id={descId}>{description}</p>}
           </div>
-          <Button variant="ghost" size="sm" iconOnly aria-label="Close" onClick={onClose} icon={<X size={18} />} />
+          <Button variant="ghost" size="sm" iconOnly aria-label={t('close')} onClick={onClose} icon={<X size={18} />} />
         </div>
         {onSubmit ? (
           <form

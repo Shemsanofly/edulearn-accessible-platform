@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import type { AppNotification, AuditEntry, ContactRequest, Paginated, SchoolSettings } from '../../../shared/types.js';
+import type { AppNotification, AuditEntry, ContactRequest, Paginated, SchoolSettings, StudentListItem } from '../../../shared/types.js';
 import { config } from '../config.js';
 import { query, queryOne } from '../db/pool.js';
 import { canViewStudent } from '../lib/access.js';
@@ -10,6 +10,7 @@ import { badRequest, forbidden, intParam, notFound, pageParams, parse, provided 
 import { notifyWhere } from '../lib/notify.js';
 import { phone } from '../lib/phone.js';
 import { invalidateSettings, loadSettings } from '../lib/settings.js';
+import { STUDENT_SELECT } from '../lib/sql.js';
 import { email, optionalText } from '../lib/validators.js';
 import { me, requireRole } from '../middleware/auth.js';
 
@@ -260,4 +261,22 @@ platformRouter.patch('/enquiries/:id', requireRole('admin'), async (req, res) =>
   if (!row) throw notFound('Enquiry');
   await audit(req, { action: 'update', entity: 'enquiry', entityId: row.id, summary: `Marked enquiry from ${row.fullName} as ${status}` });
   res.json(row);
+});
+
+// ---------------------------------------------------------------------------
+// "My children" — the parent's child switcher (a student gets just themselves)
+// ---------------------------------------------------------------------------
+platformRouter.get('/my/children', async (req, res) => {
+  const user = me(req);
+  if (user.role === 'parent') {
+    res.json(await query<StudentListItem & { relationship: string }>(
+      `${STUDENT_SELECT.replace('AS photo_url', 'AS photo_url, g.relationship')}
+         JOIN guardians g ON g.student_id = s.user_id WHERE g.parent_id = $1 ORDER BY u.first_name`,
+      [user.id],
+    ));
+  } else if (user.role === 'student') {
+    res.json(await query<StudentListItem>(`${STUDENT_SELECT} WHERE s.user_id = $1`, [user.id]));
+  } else {
+    res.json([]);
+  }
 });

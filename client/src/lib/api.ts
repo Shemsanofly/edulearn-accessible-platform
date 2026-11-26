@@ -47,7 +47,19 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
   return data as T;
 }
 
+/** Upload a raw file body (photos, logos, attachments). */
+async function upload<T>(method: 'PUT' | 'POST', path: string, body: Blob, contentType: string): Promise<T> {
+  const res = await fetch(`/api${path}`, { method, credentials: 'same-origin', headers: { 'Content-Type': contentType }, body });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (res.status === 413) throw new ApiError(413, 'That file is too large.');
+    throw new ApiError(res.status, data.error ?? `Upload failed (${res.status})`, data.details);
+  }
+  return data as T;
+}
+
 export const api = {
+  upload,
   get: <T>(path: string, params?: Params) => request<T>('GET', path, undefined, params),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body ?? {}),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body ?? {}),

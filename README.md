@@ -1,62 +1,76 @@
 # 🎓 EduLearn — School Management System
 
-An accessible, full-stack school management system for **administrators, teachers, students and parents**.
-Built with **TypeScript** end to end and **PostgreSQL** for storage.
+A modern, bilingual (**English / Kiswahili**) school management platform that connects **administrators, teachers and
+parents** (plus students), built for schools in **Zanzibar and Tanzania**. It runs in any browser on computers, tablets
+and phones.
 
 | | |
 |---|---|
-| **Frontend** | React 19 · Vite · TanStack Query · React Router · lucide icons |
-| **Backend** | Node.js · Express 5 · zod validation · JWT sessions in httpOnly cookies |
-| **Database** | PostgreSQL 14+ (plain SQL migrations, no ORM) |
-| **Tests** | Vitest + Supertest integration tests against a real database |
+| **Frontend** | React 19 · Vite · TypeScript · TanStack Query · React Router |
+| **Backend** | Node.js · Express 5 · TypeScript · zod validation · JWT sessions in httpOnly cookies |
+| **Database** | PostgreSQL 14+ (plain SQL migrations) |
+| **Tests** | Vitest + Supertest integration tests against a real database (51 tests) |
 
-> The whole application is TypeScript. The `legacy/` folder holds the original HTML prototype for reference
-> only; `.gitattributes` excludes it from GitHub's language statistics.
+> The whole application is TypeScript. `legacy/` holds the original HTML prototype for reference only;
+> `.gitattributes` excludes it from GitHub's language statistics.
 
-## What it does
+## Features
 
-**Administrators**
-- Dashboard with live attendance, fee collection, enrolment and alerts for missing registers
-- Enrol and manage students, teachers and parents (temporary passwords generated automatically, reset in one click)
-- Classes, subjects, terms and course assignments (which teacher teaches what)
-- Timetable builder that **refuses clashes** — a class, teacher or room can't be double-booked
-- Fees: bill a whole class in one go, record part-payments, see overdue balances
-- School-wide announcements and calendar
+### Public website
+A professional landing page (`/`) with features, how it works, benefits, about, and a contact / **request a demo**
+form. Enquiries are saved and appear for administrators under **Enquiries**.
 
-**Teachers**
-- Today's lessons at a glance, with one-tap access to the register
-- Attendance register with keyboard shortcuts (P / L / A / E) and history
-- Spreadsheet-style gradebook: create assessments, type scores, see averages, export CSV
-- Message parents and students; post announcements to their classes
+### Administrators
+- Dashboard: students, teachers, parents, classes, today's attendance, outstanding fees, academic performance of the
+  latest exam, recent activity, alerts, and a "get your school set up" checklist for new schools
+- **Students** (photos, admission numbers, classes, status, support needs), **teachers** (subjects & classes),
+  **parents/guardians** (one parent ↔ many children)
+- **Classes, subjects, academic years and terms**; class level names are configurable (Form / Standard / Grade)
+- **Timetable** builder that refuses clashes (class, teacher or room double-booked)
+- **Attendance** overview, history and reports
+- **Examinations**: create an exam for chosen classes, enter marks in the gradebook, **configurable grading scales**
+  (CSEE and PSLE included), automatic grades, **report cards** with class positions and class-teacher remarks,
+  class performance, publish results to parents
+- **Fees** in TZS: fee structures per level, bill a class without double billing, record (part-)payments, numbered
+  **receipts**, outstanding balances, fee reminders, financial reports
+- **Announcements**, calendar (incl. Tanzanian public holidays in the demo), messages
+- **Reports** with Excel (CSV) export and print / save as PDF: attendance, academic, financial, teachers, students
+- **Audit log** of important administrative actions, **school settings** (name, logo, motto, contacts, currency,
+  default language, level label)
 
-**Students**
-- Personal timetable, upcoming assignments, grades with teacher feedback, attendance record, fees
+### Teachers (limited to their own classes and subjects)
+Dashboard, my classes, attendance register (keyboard shortcuts P/L/A/E), gradebook, exam mark entry, assignments with
+file attachments, timetable, class announcements, messages with parents, student profiles, class reports.
+Teachers cannot see finances, create accounts or change school settings.
 
-**Parents**
-- One card per child with average, attendance, upcoming work and fee balance
-- Full progress view per child and direct messaging with their teachers
+### Parents (designed for phones)
+Switch between children; results and printable **report cards**, progress charts, attendance and late/absence
+history, fees with **downloadable receipts**, assignments with deadlines and files, timetable, announcements, and
+**notifications** for absences, results, fees, assignments and school news. Parents only ever see their own children.
 
-**For everyone**
-- Six colour themes (Indigo, Ocean, Forest, Sunset, Grape, Rose), each with a dark mode — everyone picks their own
-- `Ctrl/⌘ + K` command palette to jump anywhere or find a person or class; press `?` for all keyboard shortcuts
-- Display & accessibility menu: colour theme, light/dark/auto, text size, high contrast, a highly-legible font (Atkinson Hyperlegible) and reduced motion — saved to the user's account
-- A "Let's get your school set up" checklist guides a new administrator step by step
-- On phones, a bottom tab bar keeps the most-used pages one tap away
-- Keyboard navigable, skip link, labelled controls, focus-trapped dialogs, screen-reader announcements
-- Responsive layout that works on phones
+### For everyone
+English / Kiswahili switch, TZS amounts, dd/mm/yyyy dates, Tanzanian phone numbers (0777 123 456 → +255 777 123 456),
+notification centre, `Ctrl/⌘ + K` search, `?` for keyboard shortcuts, colour themes (navy by default), dark mode,
+large text, high contrast, readable font, reduced motion, and a bottom tab bar on phones.
 
-Each person only ever sees what they should: access rules are enforced on the server (e.g. teachers see only
-students they teach, parents only their own children).
+### Security
+Passwords hashed with bcrypt · httpOnly session cookies · sessions revoked after a password change/reset or
+deactivation · forgot-password links (single use, 30 minutes) · rate-limited sign-in, reset and contact endpoints ·
+role checks on **every** API route (hiding a button is never the only protection) · input validation with zod ·
+audit log of administrative actions.
+
+> **Payments:** the system records payments made at the bank, by mobile money or at the office.
+> It does **not** take online payments — no payment gateway is integrated.
 
 ## Quick start
 
-### Option A — Docker (easiest)
+### Option A — Docker
 
 ```bash
 docker compose up --build
 ```
 
-Then load the demo school (optional):
+Load the demo school (optional):
 
 ```bash
 docker compose exec app node server/dist/db/cli.js seed
@@ -64,68 +78,64 @@ docker compose exec app node server/dist/db/cli.js seed
 
 Open http://localhost:4000.
 
-### Option B — Local Node + PostgreSQL
+### Option B — Node + PostgreSQL
 
 Requirements: Node 20+ and PostgreSQL 14+.
 
-1. Create a database and user:
+```bash
+psql -U postgres -c "CREATE ROLE edulearn LOGIN PASSWORD 'edulearn' CREATEDB;"
+```
 
-   ```bash
-   psql -U postgres -c "CREATE ROLE edulearn LOGIN PASSWORD 'edulearn' CREATEDB;"
-   ```
+```bash
+psql -U postgres -c "CREATE DATABASE edulearn OWNER edulearn;"
+```
 
-   ```bash
-   psql -U postgres -c "CREATE DATABASE edulearn OWNER edulearn;"
-   ```
+```bash
+npm install
+```
 
-2. Install and configure:
+```bash
+cp .env.example .env
+```
 
-   ```bash
-   npm install
-   ```
+```bash
+npm run db:seed
+```
 
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+npm run dev
+```
 
-3. Create the tables and load the demo school:
+Open http://localhost:5173 (the API runs on port 4000).
 
-   ```bash
-   npm run db:seed
-   ```
+## Demo data and accounts
 
-4. Start the API (port 4000) and the web app (port 5173) together:
+`npm run db:seed` creates **EduLearn Demo Secondary School**, a fictional school in Zanzibar. Every name, phone number,
+mark and payment in it is invented, and the app shows a **"Demo data"** badge while it is loaded. The demo logins are
+only offered on the sign-in page when demo data is present.
 
-   ```bash
-   npm run dev
-   ```
-
-Open http://localhost:5173.
-
-### Demo accounts
-
-All demo accounts use the password **`password123`** (or click one on the sign-in page):
+All demo accounts use the password **`password123`**:
 
 | Role | Email | Who |
 |---|---|---|
-| Administrator | `admin@edulearn.school` | Nadia Bello |
-| Teacher | `teacher@edulearn.school` | Sarah Johnson — maths, class teacher of Grade 10A |
-| Student | `student@edulearn.school` | Alex Rivera — Grade 10A |
-| Parent | `parent@edulearn.school` | Maria Rivera — parent of Alex and Sofia |
+| Administrator | `admin@edulearn.school` | Salma Juma |
+| Teacher | `teacher@edulearn.school` | Zuhura Hamad — Mathematics, class teacher of Form 2A |
+| Parent | `parent@edulearn.school` | Mwanaisha Juma — mother of Ali (Form 2A) and Asha (Form 1A) |
+| Student | `student@edulearn.school` | Ali Juma — Form 2A |
 
-The demo data (≈120 students, 6 classes, a full timetable, a term of attendance, grades and fees) is generated
-relative to today's date, so it always looks current.
+## Setting up a real school
 
-## Using it for a real school
-
-1. Set a strong `JWT_SECRET` (32+ random characters) and `NODE_ENV=production`.
-2. Create only an administrator instead of the demo data:
+1. Set a strong `JWT_SECRET` (32+ random characters), `NODE_ENV=production` and `APP_URL`.
+2. Create only the administrator (no demo data):
 
    ```bash
-   SEED_MODE=admin-only ADMIN_EMAIL=office@yourschool.org ADMIN_PASSWORD='a-strong-password' npm run db:seed
+   SEED_MODE=admin-only SCHOOL_NAME="Your School" ADMIN_EMAIL=office@yourschool.ac.tz ADMIN_PASSWORD='a-strong-password' npm run db:seed
    ```
 
-3. Sign in, then set up **Subjects & terms → Classes → Teachers → Students → Timetable**.
+3. Sign in and follow the **"Let's get your school set up"** checklist: school settings → term → subjects → teachers →
+   classes → who teaches what → students & parents → timetable → fee structures.
+4. Optional: set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` so "Forgot password" sends emails.
+   Without SMTP, reset requests notify administrators, who can issue a temporary password.
 
 ## Scripts
 
@@ -133,43 +143,41 @@ relative to today's date, so it always looks current.
 |---|---|
 | `npm run dev` | API + web app with hot reload |
 | `npm run build` | Production build (client → `client/dist`, server → `server/dist`) |
-| `npm start` | Run the production server (also serves the web app) |
+| `npm start` | Production server (also serves the web app) |
 | `npm run db:migrate` | Apply pending SQL migrations |
 | `npm run db:seed` | Migrate, then load demo data if the database is empty |
 | `npm run db:reset` | ⚠️ Drop everything, migrate and re-seed |
-| `npm test` | Integration tests (uses the `edulearn_test` database, or `TEST_DATABASE_URL`) |
+| `npm test` | Integration tests (database `edulearn_test`, or `TEST_DATABASE_URL`) |
 | `npm run typecheck` | Type-check server and client |
 
 ## Project structure
 
 ```
-├── shared/types.ts          # API contract shared by server and client
+├── shared/types.ts            # API contract shared by server and client
 ├── server/
-│   ├── migrations/          # SQL migrations (applied in order, tracked in schema_migrations)
-│   ├── src/
-│   │   ├── routes/          # auth, students, teachers, parents, academics, attendance,
-│   │   │                    # assessments, fees, communication, dashboard
-│   │   ├── lib/access.ts    # who-can-see-what rules
-│   │   ├── db/              # pool, migrator, seed, CLI
-│   │   └── app.ts           # Express app
-│   └── test/                # integration tests
+│   ├── migrations/            # 001_init.sql, 002_school_platform.sql (applied automatically on start)
+│   ├── src/routes/            # auth, students, teachers, parents, academics, attendance, assessments,
+│   │                          # exams, fees, reports, communication, platform (settings, notifications, audit…)
+│   ├── src/lib/               # access rules, audit, notifications, grading, phone numbers, settings
+│   └── test/                  # integration tests
 ├── client/src/
-│   ├── pages/               # one file per screen
-│   ├── components/          # layout, UI kit, dialogs, toasts, charts, command palette
-│   ├── lib/                 # API client, auth, formatting, preferences
-│   └── styles/index.css     # design tokens + components (light, dark, high-contrast)
-└── legacy/                  # the original HTML prototype, kept for reference
+│   ├── pages/                 # one file per screen, each with its English & Kiswahili text
+│   ├── components/            # layout, UI kit, dialogs, charts, notifications, child switcher
+│   ├── lib/                   # API client, auth, i18n, formatting, export helpers
+│   └── styles/index.css       # design tokens (navy / white / teal), light & dark, print styles
+└── legacy/                    # the original HTML prototype
 ```
 
 ## Database
 
-Main tables: `users`, `students`, `teachers`, `guardians` (parent ↔ student), `classes`, `subjects`,
-`class_subjects` (a subject taught to a class by a teacher), `timetable_slots`, `terms`, `attendance`,
-`assessments`, `grades`, `invoices`, `payments`, `announcements`, `events`, `messages`.
-The `invoice_balances` view derives paid / part-paid / overdue status. See `server/migrations/001_init.sql`.
+Core: `users`, `students`, `teachers`, `guardians` (parent ↔ student, many-to-many), `classes`, `subjects`,
+`class_subjects` (teacher ↔ subject ↔ class), `timetable_slots`, `academic_years`, `terms`, `attendance`,
+`assessments` (assignments, quizzes, tests and exam papers), `grades`, `exams`, `exam_classes`, `report_remarks`,
+`grading_scales`, `grade_bands`, `fee_structures`, `invoices`, `payments` (numbered receipts), `announcements`,
+`events`, `messages`, `notifications`, `audit_logs`, `password_resets`, `user_photos`, `assessment_files`,
+`school_settings`, `school_logo`, `contact_requests`.
 
-To change the schema, add a new numbered file such as `server/migrations/002_add_library.sql`; it runs
-automatically on the next start.
+Add a schema change as a new numbered file (e.g. `server/migrations/003_library.sql`); it runs on the next start.
 
 ## License
 
