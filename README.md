@@ -62,7 +62,7 @@ history, fees with **downloadable receipts**, assignments with deadlines and fil
 ### For everyone
 English / Kiswahili switch, TZS amounts, dd/mm/yyyy dates, Tanzanian phone numbers (0777 123 456 → +255 777 123 456),
 notification centre, `Ctrl/⌘ + K` search, `?` for keyboard shortcuts, a **New** menu with each role's most common tasks,
-sortable tables (sorting runs on the server for paged lists), colour themes (purple by default), dark mode, large text,
+sortable tables (sorting runs on the server for paged lists), colour themes (ocean teal by default; academic navy, royal blue, school green, maroon, royal purple, terracotta and indigo to choose from), dark mode, large text,
 high contrast, readable font, reduced motion, and a bottom tab bar on phones.
 
 ### Security
@@ -191,7 +191,7 @@ In Docker: `docker compose exec app node server/dist/db/cli.js deactivate-demo [
 │   ├── pages/                 # one file per screen, each with its English & Kiswahili text
 │   ├── components/            # layout, UI kit, dialogs, charts, notifications, child switcher
 │   ├── lib/                   # API client, auth, i18n, formatting, export helpers
-│   └── styles/index.css       # design tokens (deep purple, warm neutrals, dark "ink" surfaces), light & dark, print
+│   └── styles/index.css       # design tokens (ocean teal, warm neutrals, dark "ink" surfaces), light & dark, print
 └── legacy/                    # the original HTML prototype
 ```
 

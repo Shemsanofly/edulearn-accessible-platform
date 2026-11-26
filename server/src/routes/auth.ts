@@ -99,7 +99,7 @@ authRouter.patch('/profile', requireAuth, async (req, res) => {
       preferences: z
         .object({
           theme: z.enum(['light', 'dark', 'system']).optional(),
-          accent: z.enum(['purple', 'navy', 'indigo', 'ocean', 'forest', 'sunset', 'grape', 'rose']).optional(),
+          accent: z.enum(['teal', 'navy', 'ocean', 'forest', 'rose', 'purple', 'sunset', 'indigo', 'grape']).optional(),
           language: z.enum(['en', 'sw']).optional(),
           fontScale: z.number().min(0.875).max(1.5).optional(),
           highContrast: z.boolean().optional(),

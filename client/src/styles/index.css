@@ -1,9 +1,9 @@
 /* EduLearn design system
    Tokens → base → app shell → components → feature blocks → public pages → print.
    Direction: warm neutral page, white working surfaces, charcoal text, and one deep "ink" colour (derived from
-   the brand purple) for the sidebar, the sign-in story panel, the website hero and the footer. Manrope for
+   the brand colour, ocean teal by default) for the sidebar, the sign-in story panel, the website hero and the footer. Manrope for
    everything you read and operate; Fraunces only for large website and sign-in headlines.
-   Themes: data-theme="light|dark", data-accent="navy|indigo|ocean|forest|sunset|grape|rose" (purple when unset),
+   Themes: data-theme="light|dark", data-accent="navy|ocean|forest|rose|purple|sunset|indigo|grape" (teal when unset),
            data-contrast="high", data-motion="reduced", data-font="readable".
    Contrast (light, measured in the browser): text on page 15.8:1 · muted 6.9:1 · subtle on white 5.5:1 / on grey 4.9:1 ·
            primary on white 9:1 · ink text 15.7:1 · ink muted 8.8:1 · ink accent 8.3:1 · status colours ≥ 5:1 on white and on their tints */
@@ -22,19 +22,19 @@
   --dur: 160ms;
 
   /* Brand — accent themes only set --primary / --primary-hover / --accent; the rest is derived. */
-  --primary: #5b21b6;
-  --primary-hover: #4c1d95;
+  --primary: #0e6672;
+  --primary-hover: #0a4f58;
   --accent: #b45309;
   --primary-soft: color-mix(in srgb, var(--primary) 8%, #fff);
   --primary-softer: color-mix(in srgb, var(--primary) 4%, #fff);
   --on-primary: #fff;
 
   /* Ink: the deep brand surface. */
-  --ink: color-mix(in srgb, var(--primary) 24%, #0d0a13);
-  --ink-raised: color-mix(in srgb, var(--primary) 30%, #15111d);
+  --ink: color-mix(in srgb, var(--primary) 30%, #070b0d);
+  --ink-raised: color-mix(in srgb, var(--primary) 36%, #0e1417);
   --on-ink: #f4f1fa;
   --on-ink-muted: #bdb3d3;
-  --ink-accent: color-mix(in srgb, var(--primary) 30%, #e9e2ff);
+  --ink-accent: color-mix(in srgb, var(--primary) 28%, #f3fbfb);
   --ink-border: rgba(255, 255, 255, 0.1);
   --ink-hover: rgba(255, 255, 255, 0.06);
 
@@ -76,24 +76,25 @@
   color-scheme: light;
 }
 
-/* Optional colour themes. Every --primary passes 4.5:1 against white text. */
-:root[data-accent='navy']   { --primary: #1b3a6b; --primary-hover: #142d55; --accent: #0d9488; }
-:root[data-accent='indigo'] { --primary: #4338ca; --primary-hover: #3730a3; --accent: #db2777; }
-:root[data-accent='ocean']  { --primary: #0369a1; --primary-hover: #075985; --accent: #0d9488; }
-:root[data-accent='forest'] { --primary: #047857; --primary-hover: #065f46; --accent: #65a30d; }
-:root[data-accent='sunset'] { --primary: #c2410c; --primary-hover: #9a3412; --accent: #be185d; }
+/* Optional colour themes, chosen for schools. Every --primary passes 4.5:1 against white text. */
+:root[data-accent='navy']   { --primary: #1b3a6b; --primary-hover: #142d55; --accent: #b45309; }  /* Academic navy */
+:root[data-accent='ocean']  { --primary: #1d4ed8; --primary-hover: #1e40af; --accent: #b45309; }  /* Royal blue */
+:root[data-accent='forest'] { --primary: #276234; --primary-hover: #1e4d29; --accent: #a16207; }  /* School green */
+:root[data-accent='rose']   { --primary: #8c1d40; --primary-hover: #701733; --accent: #a16207; }  /* Maroon */
+:root[data-accent='purple'] { --primary: #5b21b6; --primary-hover: #4c1d95; --accent: #b45309; }  /* Royal purple */
+:root[data-accent='sunset'] { --primary: #a8401b; --primary-hover: #873315; --accent: #0e6672; }  /* Terracotta */
+:root[data-accent='indigo'] { --primary: #4338ca; --primary-hover: #3730a3; --accent: #b45309; }
 :root[data-accent='grape']  { --primary: #7e22ce; --primary-hover: #6b21a8; --accent: #be185d; }
-:root[data-accent='rose']   { --primary: #be123c; --primary-hover: #9f1239; --accent: #c2410c; }
 
 :root[data-theme='dark'] {
-  --primary: #c4b5fd;
-  --primary-hover: #d6cbfe;
+  --primary: #6bd3db;
+  --primary-hover: #9ae3e8;
   --accent: #fbbf24;
-  --primary-soft: color-mix(in srgb, var(--primary) 14%, #16131c);
-  --primary-softer: color-mix(in srgb, var(--primary) 7%, #16131c);
-  --on-primary: #1e1336;
-  --ink: #100d16;
-  --ink-raised: #1a1622;
+  --primary-soft: color-mix(in srgb, var(--primary) 14%, #131719);
+  --primary-softer: color-mix(in srgb, var(--primary) 7%, #131719);
+  --on-primary: #062a2e;
+  --ink: #0c1113;
+  --ink-raised: #151c1f;
   --ink-accent: var(--primary);
   --success: #4ade80;
   --success-soft: #10271a;
@@ -107,28 +108,30 @@
   --role-teacher: #f472b6;
   --role-student: #c4b5fd;
   --role-parent: #a5b4fc;
-  --bg: #15131a;
-  --surface: #1c1a22;
-  --surface-2: #232029;
-  --surface-hover: #2b2832;
-  --border: #302c37;
-  --border-strong: #46404f;
-  --text: #efedf3;
-  --text-muted: #b8b2c3;
-  --text-subtle: #9c96a8;
+  --bg: #121618;
+  --surface: #191e21;
+  --surface-2: #20262a;
+  --surface-hover: #283034;
+  --border: #2d3539;
+  --border-strong: #435056;
+  --text: #ecf1f2;
+  --text-muted: #b3bec2;
+  --text-subtle: #96a3a8;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px -14px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 28px 64px -20px rgba(0, 0, 0, 0.75);
   --overlay: rgba(0, 0, 0, 0.62);
   color-scheme: dark;
 }
+:root[data-theme='dark'][data-accent] { --on-primary: #111418; }
 :root[data-theme='dark'][data-accent='navy']   { --primary: #93b4f0; --primary-hover: #adc6f4; }
+:root[data-theme='dark'][data-accent='ocean']  { --primary: #93b0fb; --primary-hover: #bccdfd; }
+:root[data-theme='dark'][data-accent='forest'] { --primary: #86d39a; --primary-hover: #aee2bb; }
+:root[data-theme='dark'][data-accent='rose']   { --primary: #f4a3b8; --primary-hover: #f8c4d1; }
+:root[data-theme='dark'][data-accent='purple'] { --primary: #c4b5fd; --primary-hover: #d6cbfe; }
+:root[data-theme='dark'][data-accent='sunset'] { --primary: #f5ab86; --primary-hover: #f8c6ad; }
 :root[data-theme='dark'][data-accent='indigo'] { --primary: #a5b4fc; --primary-hover: #c7d2fe; }
-:root[data-theme='dark'][data-accent='ocean']  { --primary: #7dd3fc; --primary-hover: #bae6fd; }
-:root[data-theme='dark'][data-accent='forest'] { --primary: #6ee7b7; --primary-hover: #a7f3d0; }
-:root[data-theme='dark'][data-accent='sunset'] { --primary: #fdba74; --primary-hover: #fed7aa; }
 :root[data-theme='dark'][data-accent='grape']  { --primary: #d8b4fe; --primary-hover: #e9d5ff; }
-:root[data-theme='dark'][data-accent='rose']   { --primary: #fda4af; --primary-hover: #fecdd3; }
 
 /* High contrast: stronger text and borders, no subtle greys. Comes after the themes on purpose. */
 :root[data-contrast='high'] {
@@ -802,13 +805,13 @@ button.tt-slot:hover { box-shadow: var(--shadow); }
 
 
 /* ---------------------------------------------------------------- Printable documents (report cards, receipts, reports) */
-.document { --doc-ink: #3b1a78; background: #fff; color: #111; border-radius: var(--radius); border: 1px solid var(--border); padding: 36px 40px; max-width: 880px; margin: 0 auto; }
+.document { --doc-ink: #1d1b22; background: #fff; color: #111; border-radius: var(--radius); border: 1px solid var(--border); padding: 36px 40px; max-width: 880px; margin: 0 auto; }
 .document h1, .document h2, .document h3 { color: var(--doc-ink); }
 .document .doc-title { text-align: right; }
 .document .doc-kv { grid-template-columns: max-content 1fr max-content 1fr; }
 .document table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.document th, .document td { border: 1px solid #ddd6ea; padding: 7px 10px; text-align: left; }
-.document th { background: #f5f2fa; font-weight: 700; }
+.document th, .document td { border: 1px solid #d9dcdf; padding: 7px 10px; text-align: left; }
+.document th { background: #f2f4f5; font-weight: 700; }
 .document .doc-head { display: flex; align-items: center; gap: 18px; padding-bottom: 16px; border-bottom: 3px solid var(--doc-ink); margin-bottom: 20px; }
 @media (max-width: 640px) {
   .document { padding: 20px 16px; }
