@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, KeyRound, Mail, Pencil, Phone, Power, PowerOff, Settings2, Trash, UserPlus, UserRound } from 'lucide-react';
+import { BookOpen, KeyRound, Mail, MailPlus, Pencil, Phone, Power, PowerOff, Settings2, Trash, UserPlus, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { Course, CreatedAccount, TeacherDetail, TeacherInput, TeacherListItem } from '../../../shared/types';
@@ -7,7 +7,7 @@ import { Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
   Avatar, Badge, Button, ButtonLink, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader,
-  SearchInput, Spinner, useDebounced,
+  SearchInput, SortHeader, sortRows, Spinner, useDebounced, useSort,
 } from '../components/ui';
 import { api } from '../lib/api';
 import { formatDate, fullName, todayIso } from '../lib/format';
@@ -308,6 +308,7 @@ export function TeachersPage() {
   const [editing, setEditing] = useState<TeacherListItem | null>(null);
   const focusId = params.get('focus') ? Number(params.get('focus')) : null;
   const actions = useAccountActions([['teachers'], ['teacher']]);
+  const sort = useSort('name');
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['teachers', debounced],
@@ -330,7 +331,12 @@ export function TeachersPage() {
       <PageHeader
         title={t('title')}
         description={t('desc')}
-        actions={<Button variant="primary" icon={<UserPlus size={18} />} onClick={() => openForm(null)}>{t('add')}</Button>}
+        actions={
+          <>
+            <ButtonLink to="/invitations?new=1&as=teacher" icon={<MailPlus size={17} />}>{tc('inviteSomeone')}</ButtonLink>
+            <Button variant="primary" icon={<UserPlus size={18} />} onClick={() => openForm(null)}>{t('add')}</Button>
+          </>
+        }
       />
       <Card>
         <div className="toolbar">
@@ -352,17 +358,24 @@ export function TeachersPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col">{t('colTeacher')}</th>
-                  <th scope="col">{t('colEmployee')}</th>
-                  <th scope="col">{t('colSpec')}</th>
-                  <th scope="col" className="num">{t('colCourses')}</th>
-                  <th scope="col">{t('colHomeroom')}</th>
-                  <th scope="col">{t('colStatus')}</th>
+                  <SortHeader label={t('colTeacher')} field="name" state={sort} />
+                  <SortHeader label={t('colEmployee')} field="employee" state={sort} />
+                  <SortHeader label={t('colSpec')} field="spec" state={sort} />
+                  <SortHeader label={t('colCourses')} field="courses" state={sort} numeric />
+                  <SortHeader label={t('colHomeroom')} field="homeroom" state={sort} />
+                  <SortHeader label={t('colStatus')} field="status" state={sort} />
                   <th scope="col" className="actions"><span className="sr-only">{t('actions')}</span></th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((teacher) => {
+                {sortRows(data, sort, {
+                  name: (x) => `${x.lastName} ${x.firstName}`,
+                  employee: (x) => x.employeeNo,
+                  spec: (x) => x.specialization,
+                  courses: (x) => x.courseCount,
+                  homeroom: (x) => x.homeroomClass,
+                  status: (x) => (x.isActive ? 0 : 1),
+                }).map((teacher) => {
                   const name = fullName(teacher);
                   return (
                     <tr key={teacher.id} className="clickable" onClick={() => openDetail(teacher.id)}>

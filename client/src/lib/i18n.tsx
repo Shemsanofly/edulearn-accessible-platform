@@ -36,7 +36,10 @@ export const COMMON = {
     fees: 'Fees & payments', feesShort: 'Fees', announcements: 'Announcements', news: 'News', calendar: 'Calendar', messages: 'Messages',
     reports: 'Reports', enquiries: 'Enquiries', auditLog: 'Audit log', schoolSettings: 'School settings', settings: 'Settings',
     myClasses: 'My classes', gradesAttendance: 'Grades & attendance', grades: 'Grades', reportCards: 'Report cards', results: 'Results',
-    assignments: 'Assignments', assignmentsShort: 'Assignments', notifications: 'Notifications', home: 'Home', menu: 'Menu', myChildren: 'My children',
+    assignments: 'Assignments', assignmentsShort: 'Assignments', notifications: 'Notifications', invitations: 'Invitations',
+    createAccount: 'Create account', getStarted: 'Get started', contactUs: 'Contact us', quickActions: 'Quick actions', newItem: 'New',
+    inviteSomeone: 'Invite someone', enrolStudent: 'Enrol a student', createInvoices: 'Create invoices', postAnnouncement: 'Post an announcement',
+    takeRegister: 'Take the register', enterMarks: 'Enter marks', messageTeacher: 'Message a teacher', messageParent: 'Message a parent', sortBy: 'Sort by', home: 'Home', menu: 'Menu', myChildren: 'My children',
     // Navigation groups
     people: 'People', academics: 'Academics', finance: 'Finance', communication: 'Communication', administration: 'Administration',
     teaching: 'Teaching', learning: 'Learning', school: 'School', family: 'Family',
@@ -50,7 +53,7 @@ export const COMMON = {
     remove: 'Remove', markAllRead: 'Mark all as read', viewAll: 'View all', keyboardShortcuts: 'Keyboard shortcuts',
     // States
     loading: 'Loading…', noResults: 'No results', nothingYet: 'Nothing here yet', couldNotLoad: 'We couldn’t load this',
-    saved: 'Saved', deleted: 'Deleted', required: 'Required', optional: 'optional', demoData: 'Demo data',
+    saved: 'Saved', deleted: 'Deleted', required: 'Required', optional: 'optional',
     // Statuses
     present: 'Present', absent: 'Absent', late: 'Late', excused: 'Excused',
     paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid', overdue: 'Overdue', active: 'Active', inactive: 'Inactive',
@@ -67,7 +70,10 @@ export const COMMON = {
     fees: 'Ada na malipo', feesShort: 'Ada', announcements: 'Matangazo', news: 'Habari', calendar: 'Kalenda', messages: 'Ujumbe',
     reports: 'Ripoti', enquiries: 'Maulizo', auditLog: 'Kumbukumbu za shughuli', schoolSettings: 'Mipangilio ya shule', settings: 'Mipangilio',
     myClasses: 'Madarasa yangu', gradesAttendance: 'Alama na mahudhurio', grades: 'Alama', reportCards: 'Ripoti za matokeo', results: 'Matokeo',
-    assignments: 'Kazi za nyumbani', assignmentsShort: 'Kazi', notifications: 'Arifa', home: 'Nyumbani', menu: 'Menyu', myChildren: 'Watoto wangu',
+    assignments: 'Kazi za nyumbani', assignmentsShort: 'Kazi', notifications: 'Arifa', invitations: 'Mialiko',
+    createAccount: 'Fungua akaunti', getStarted: 'Anza sasa', contactUs: 'Wasiliana nasi', quickActions: 'Vitendo vya haraka', newItem: 'Mpya',
+    inviteSomeone: 'Alika mtu', enrolStudent: 'Sajili mwanafunzi', createInvoices: 'Toa ankara', postAnnouncement: 'Weka tangazo',
+    takeRegister: 'Chukua mahudhurio', enterMarks: 'Ingiza alama', messageTeacher: 'Mtumie mwalimu ujumbe', messageParent: 'Mtumie mzazi ujumbe', sortBy: 'Panga kwa', home: 'Nyumbani', menu: 'Menyu', myChildren: 'Watoto wangu',
     people: 'Watu', academics: 'Taaluma', finance: 'Fedha', communication: 'Mawasiliano', administration: 'Utawala',
     teaching: 'Ufundishaji', learning: 'Masomo', school: 'Shule', family: 'Familia',
     admin: 'Msimamizi', teacher: 'Mwalimu', student: 'Mwanafunzi', parent: 'Mzazi',
@@ -77,7 +83,7 @@ export const COMMON = {
     tryAgain: 'Jaribu tena', confirm: 'Thibitisha', yes: 'Ndiyo', no: 'Hapana', signOut: 'Toka', signIn: 'Ingia', upload: 'Pakia',
     remove: 'Ondoa', markAllRead: 'Weka zote kama zimesomwa', viewAll: 'Tazama zote', keyboardShortcuts: 'Njia za mkato za kibodi',
     loading: 'Inapakia…', noResults: 'Hakuna matokeo', nothingYet: 'Bado hakuna kitu hapa', couldNotLoad: 'Imeshindikana kupakia',
-    saved: 'Imehifadhiwa', deleted: 'Imefutwa', required: 'Inahitajika', optional: 'si lazima', demoData: 'Data ya majaribio',
+    saved: 'Imehifadhiwa', deleted: 'Imefutwa', required: 'Inahitajika', optional: 'si lazima',
     present: 'Yupo', absent: 'Hayupo', late: 'Amechelewa', excused: 'Ana ruhusa',
     paid: 'Imelipwa', partial: 'Imelipwa sehemu', unpaid: 'Haijalipwa', overdue: 'Imepitwa na muda', active: 'Hai', inactive: 'Imesitishwa',
     published: 'Yametolewa', draft: 'Hayajatolewa',
@@ -159,7 +165,7 @@ export function useT<K extends string>(messages: { en: Record<K, string>; sw: Re
 export function LanguageSwitch({ compact = false }: { compact?: boolean }) {
   const { lang, setLang } = useI18n();
   return (
-    <div className="segmented" role="group" aria-label="Language / Lugha">
+    <div className={compact ? 'segmented lang-switch' : 'segmented'} role="group" aria-label="Language / Lugha">
       {LANGUAGES.map((l) => (
         <button key={l.id} type="button" aria-pressed={lang === l.id} onClick={() => setLang(l.id)} lang={l.id}>
           {compact ? l.short : l.label}

@@ -13,7 +13,7 @@ export type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'overdue';
 export type Audience = 'everyone' | 'staff' | 'students' | 'parents' | 'class';
 export type EventType = 'academic' | 'exam' | 'holiday' | 'meeting' | 'sports' | 'other';
 
-export type Accent = 'navy' | 'indigo' | 'ocean' | 'forest' | 'sunset' | 'grape' | 'rose';
+export type Accent = 'purple' | 'navy' | 'indigo' | 'ocean' | 'forest' | 'sunset' | 'grape' | 'rose';
 export type Language = 'en' | 'sw';
 
 export interface Preferences {

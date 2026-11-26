@@ -99,7 +99,7 @@ authRouter.patch('/profile', requireAuth, async (req, res) => {
       preferences: z
         .object({
           theme: z.enum(['light', 'dark', 'system']).optional(),
-          accent: z.enum(['navy', 'indigo', 'ocean', 'forest', 'sunset', 'grape', 'rose']).optional(),
+          accent: z.enum(['purple', 'navy', 'indigo', 'ocean', 'forest', 'sunset', 'grape', 'rose']).optional(),
           language: z.enum(['en', 'sw']).optional(),
           fontScale: z.number().min(0.875).max(1.5).optional(),
           highContrast: z.boolean().optional(),
@@ -158,7 +158,7 @@ async function sendResetEmail(to: string, name: string, link: string) {
 }
 
 const resetLink = (req: Request, token: string) => {
-  const origin = req.get('origin') ?? config.appUrl;
+  const origin = config.appUrlConfigured ? config.appUrl : (req.get('origin') ?? config.appUrl);
   return `${origin}/reset-password?token=${token}`;
 };
 

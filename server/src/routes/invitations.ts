@@ -78,8 +78,8 @@ async function cleanDetails(role: Role, d: z.infer<typeof detailsSchema>): Promi
 }
 
 export function invitationLink(req: Request, token: string) {
-  const origin = req.get('origin') ?? config.appUrl;
-  return `${origin}/register?token=${encodeURIComponent(token)}`;
+  const origin = config.appUrlConfigured ? config.appUrl : (req.get('origin') ?? config.appUrl);
+  return `${origin.replace(/\/$/, '')}/register?token=${encodeURIComponent(token)}`;
 }
 
 const ROLE_WORDS: Record<Role, string> = { admin: 'an administrator', teacher: 'a teacher', student: 'a student', parent: 'a parent' };

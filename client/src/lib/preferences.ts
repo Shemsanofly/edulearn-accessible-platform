@@ -25,7 +25,7 @@ export function applyPreferences(p: Preferences) {
   const theme = p.theme ?? 'system';
   root.dataset.theme = theme === 'system' ? (media?.matches ? 'dark' : 'light') : theme;
   root.style.fontSize = `${(p.fontScale ?? 1) * 100}%`;
-  if (p.accent && p.accent !== 'navy') root.dataset.accent = p.accent;
+  if (p.accent && p.accent !== 'purple') root.dataset.accent = p.accent;
   else delete root.dataset.accent;
   if (p.highContrast) root.dataset.contrast = 'high';
   else delete root.dataset.contrast;

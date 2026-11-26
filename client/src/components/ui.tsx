@@ -1,10 +1,10 @@
-import { AlertCircle, ChevronLeft, ChevronRight, Inbox, RefreshCw, Search } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Eye, EyeOff, Inbox, RefreshCw, Search } from 'lucide-react';
 import {
   cloneElement, forwardRef, isValidElement, useEffect, useId, useState,
   type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactElement, type ReactNode,
   type SelectHTMLAttributes, type TextareaHTMLAttributes,
 } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { colorFor, initials, type Tone } from '../lib/format';
 import { useI18n } from '../lib/i18n';
 
@@ -267,6 +267,30 @@ export function Field({ label, hint, error, required, children, className }: { l
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...p }, ref) {
   return <input ref={ref} className={cx('input', className)} {...p} />;
 });
+/**
+ * Password field with an accessible show/hide toggle. Takes the same props as Input, so it works inside
+ * <Field> (which passes id and aria attributes through to the real input).
+ */
+export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & { showLabel?: string; hideLabel?: string }>(
+  function PasswordInput({ showLabel = 'Show password', hideLabel = 'Hide password', className, ...p }, ref) {
+    const [visible, setVisible] = useState(false);
+    return (
+      <div className="password-wrap">
+        <input ref={ref} type={visible ? 'text' : 'password'} className={cx('input', className)} autoCapitalize="none" spellCheck={false} {...p} />
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm btn-icon toggle-visibility"
+          aria-label={visible ? hideLabel : showLabel}
+          aria-pressed={visible}
+          aria-controls={p.id}
+          onClick={() => setVisible((v) => !v)}
+        >
+          {visible ? <EyeOff size={17} aria-hidden /> : <Eye size={17} aria-hidden />}
+        </button>
+      </div>
+    );
+  },
+);
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, ...p }, ref) {
   return <select ref={ref} className={cx('select', className)} {...p} />;
 });
@@ -322,4 +346,81 @@ export function useDebounced<T>(value: T, delay = 300): T {
     return () => clearTimeout(t);
   }, [value, delay]);
   return v;
+}
+
+// ---------------------------------------------------------------- Sortable tables
+export type SortDir = 'asc' | 'desc';
+export interface SortState {
+  sort: string | null;
+  dir: SortDir;
+  /** Click handler for a column: first click sorts ascending, second descending. */
+  toggle: (field: string) => void;
+  /** Query parameters to send to the API. */
+  params: { sort?: string; dir?: SortDir };
+}
+
+/** Sorting kept in the URL (?sort=&dir=) so the back button and shared links keep the order. */
+export function useSort(defaultSort: string | null = null, defaultDir: SortDir = 'asc'): SortState {
+  const [params, setParams] = useSearchParams();
+  const sort = params.get('sort') ?? defaultSort;
+  const dir: SortDir = params.get('dir') === 'desc' ? 'desc' : params.get('dir') === 'asc' ? 'asc' : defaultDir;
+  const toggle = (field: string) => {
+    const next = new URLSearchParams(params);
+    next.set('sort', field);
+    next.set('dir', sort === field && dir === 'asc' ? 'desc' : 'asc');
+    next.delete('page');
+    setParams(next, { replace: true });
+  };
+  return { sort, dir, toggle, params: sort ? { sort, dir } : {} };
+}
+
+/** A table header cell that sorts its column. Announces the current order to screen readers. */
+export function SortHeader({ label, field, state, numeric, className }: { label: ReactNode; field: string; state: SortState; numeric?: boolean; className?: string }) {
+  const active = state.sort === field;
+  const Icon = !active ? ArrowUpDown : state.dir === 'asc' ? ArrowUp : ArrowDown;
+  return (
+    <th scope="col" className={cx(numeric && 'num', className)} aria-sort={active ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button type="button" className="th-sort" data-active={active || undefined} onClick={() => state.toggle(field)}>
+        {label}
+        <Icon size={13} aria-hidden />
+      </button>
+    </th>
+  );
+}
+
+/** Sort an array already in memory (for lists the API returns in full). */
+export function sortRows<T>(rows: T[], state: SortState, getters: Record<string, (row: T) => string | number | null | undefined>): T[] {
+  const get = state.sort ? getters[state.sort] : undefined;
+  if (!get) return rows;
+  const factor = state.dir === 'desc' ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const x = get(a);
+    const y = get(b);
+    if (x === y) return 0;
+    if (x === null || x === undefined) return 1;
+    if (y === null || y === undefined) return -1;
+    return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: 'base' })) * factor;
+  });
+}
+
+/** Close a popover on outside click or Escape, returning focus to its trigger. */
+export function useDismiss(open: boolean, onClose: () => void, ref: React.RefObject<HTMLElement | null>, triggerRef?: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        triggerRef?.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open, onClose, ref, triggerRef]);
 }

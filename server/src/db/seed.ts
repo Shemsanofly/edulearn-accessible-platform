@@ -176,7 +176,7 @@ export async function seedSampleSchool({ quiet = false }: { quiet?: boolean } = 
     await query(
       `UPDATE school_settings SET name = $1, motto = $2, address = $3, phone = $4, email = $5, website = NULL,
          currency = 'TZS', default_language = 'en', level_label = 'Form', is_demo = true WHERE id = 1`,
-      ['EduLearn Demo Secondary School', 'Elimu ni Mwanga', 'P.O. Box 0000, Zanzibar (demo address)', '+255 700 000 000', 'info@demo.edulearn.school'],
+      ['EduLearn Sample Secondary School', 'Elimu ni Mwanga', 'P.O. Box 0000, Zanzibar (sample address)', '+255 700 000 000', 'office@sample.edulearn.school'],
       db,
     );
 
@@ -558,7 +558,7 @@ export async function seedSampleSchool({ quiet = false }: { quiet?: boolean } = 
   });
   invalidateSettings();
 
-  log('Loaded SAMPLE data for local development: "EduLearn Demo Secondary School" (fictional). Shared password: password123');
+  log('Loaded SAMPLE data for local development: "EduLearn Sample Secondary School" (fictional). Shared password: password123');
   log('  admin@edulearn.school    — Salma Juma, administrator');
   log('  teacher@edulearn.school  — Zuhura Hamad, maths teacher & Form 2A class teacher');
   log('  parent@edulearn.school   — Mwanaisha Juma, mother of Ali (Form 2A) and Asha (Form 1A)');

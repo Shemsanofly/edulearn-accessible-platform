@@ -1,5 +1,5 @@
 # One command to run EduLearn with PostgreSQL:  docker compose up --build
-# Then seed demo data (optional):              docker compose exec app node server/dist/db/cli.js seed
+# Then create the first administrator:        docker compose exec -e ADMIN_EMAIL=you@school.ac.tz -e ADMIN_PASSWORD='a-strong-password' -e SCHOOL_NAME='Your School' app node server/dist/db/cli.js setup
 services:
   db:
     image: postgres:16-alpine

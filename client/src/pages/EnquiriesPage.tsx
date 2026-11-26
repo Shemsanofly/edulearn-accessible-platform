@@ -14,13 +14,11 @@ type Filter = 'all' | Status;
 const M = {
   en: {
     title: 'Website enquiries',
-    description: 'Questions and demo requests sent through the public website.',
+    description: 'Messages sent through the contact form on the public website.',
     filterLabel: 'Filter by status',
     statusNew: 'New',
     statusContacted: 'Contacted',
     statusClosed: 'Closed',
-    kindDemo: 'Demo request',
-    kindContact: 'Question',
     markContacted: 'Mark contacted',
     markClosed: 'Close',
     reopen: 'Reopen',
@@ -34,13 +32,11 @@ const M = {
   },
   sw: {
     title: 'Maulizo kutoka tovuti',
-    description: 'Maswali na maombi ya onyesho yaliyotumwa kupitia tovuti.',
+    description: 'Ujumbe uliotumwa kupitia fomu ya mawasiliano kwenye tovuti.',
     filterLabel: 'Chuja kwa hali',
     statusNew: 'Mapya',
     statusContacted: 'Tumewasiliana',
     statusClosed: 'Yamefungwa',
-    kindDemo: 'Ombi la onyesho',
-    kindContact: 'Swali',
     markContacted: 'Weka: tumewasiliana',
     markClosed: 'Funga',
     reopen: 'Fungua tena',
@@ -116,7 +112,6 @@ export function EnquiriesPage() {
                   <div className="grow" style={{ minWidth: 240 }}>
                     <div className="row row-wrap" style={{ gap: 8 }}>
                       <span className="title">{e.fullName}</span>
-                      <Badge tone={e.kind === 'demo' ? 'accent' : 'primary'}>{e.kind === 'demo' ? t('kindDemo') : t('kindContact')}</Badge>
                       <Badge tone={STATUS_TONE[e.status]} dot>{statusLabel(e.status)}</Badge>
                     </div>
                     <div className="meta row row-wrap" style={{ gap: 14, marginTop: 4 }}>

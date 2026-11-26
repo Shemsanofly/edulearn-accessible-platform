@@ -9,7 +9,7 @@ type School = SchoolSettings;
 
 const DEFAULT_SCHOOL: School = {
   name: 'EduLearn', motto: null, address: null, phone: null, email: null, website: null, currency: 'TZS',
-  defaultLanguage: 'en', levelLabel: 'Form', isDemo: false, logoUrl: null,
+  defaultLanguage: 'en', levelLabel: 'Form', logoUrl: null,
 };
 
 interface AuthState {

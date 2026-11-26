@@ -18,19 +18,20 @@ export const FONT_SCALES = [
 
 /** The colour themes a person can choose. `swatch` previews the theme's own gradient. */
 export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
-  { id: 'navy', label: 'Navy', swatch: 'linear-gradient(135deg, #1b3a6b, #0d9488)' },
-  { id: 'indigo', label: 'Indigo', swatch: 'linear-gradient(135deg, #4338ca, #9333ea)' },
-  { id: 'ocean', label: 'Ocean', swatch: 'linear-gradient(135deg, #075985, #0d9488)' },
-  { id: 'forest', label: 'Forest', swatch: 'linear-gradient(135deg, #065f46, #65a30d)' },
-  { id: 'sunset', label: 'Sunset', swatch: 'linear-gradient(135deg, #c2410c, #db2777)' },
-  { id: 'grape', label: 'Grape', swatch: 'linear-gradient(135deg, #6b21a8, #c026d3)' },
-  { id: 'rose', label: 'Rose', swatch: 'linear-gradient(135deg, #be123c, #ea580c)' },
+  { id: 'purple', label: 'Purple', swatch: '#6d28d9' },
+  { id: 'navy', label: 'Navy', swatch: '#1b3a6b' },
+  { id: 'indigo', label: 'Indigo', swatch: '#4f46e5' },
+  { id: 'ocean', label: 'Ocean', swatch: '#0369a1' },
+  { id: 'forest', label: 'Forest', swatch: '#047857' },
+  { id: 'sunset', label: 'Sunset', swatch: '#c2410c' },
+  { id: 'grape', label: 'Grape', swatch: '#7e22ce' },
+  { id: 'rose', label: 'Rose', swatch: '#be123c' },
 ];
 
 export function ColourPicker() {
   const { user, updatePreferences } = useAuth();
   const p = user?.preferences && Object.keys(user.preferences).length ? user.preferences : loadPreferences();
-  const current = p.accent ?? 'navy';
+  const current = p.accent ?? 'purple';
   return (
     <div className="swatches" role="radiogroup" aria-label="Colour theme">
       {ACCENTS.map((a) => (
