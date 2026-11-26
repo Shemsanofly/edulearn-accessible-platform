@@ -2,7 +2,7 @@ import { Check, Palette, Type } from 'lucide-react';
 import type { Accent } from '../../../shared/types';
 import { useAuth } from '../lib/auth';
 import { loadPreferences } from '../lib/preferences';
-import { LanguageSwitch, useT } from '../lib/i18n';
+import { LanguageSwitch, useI18n, useT } from '../lib/i18n';
 
 const M = {
   en: { colour: 'Colour theme', mode: 'Mode', light: 'Light', dark: 'Dark', auto: 'Auto', text: 'Text size', contrast: 'High contrast', contrastHint: 'Stronger colours and borders', font: 'Readable font', fontHint: 'Atkinson Hyperlegible, designed for low vision', motion: 'Reduce motion', motionHint: 'Turn off animations', language: 'Language', title: 'Display & accessibility' },
@@ -16,22 +16,26 @@ export const FONT_SCALES = [
   { value: 1.25, label: 'A++' },
 ];
 
-/** The colour themes a person can choose. `swatch` previews the theme's own gradient. */
-export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
-  { id: 'purple', label: 'Purple', swatch: '#6d28d9' },
-  { id: 'navy', label: 'Navy', swatch: '#1b3a6b' },
-  { id: 'indigo', label: 'Indigo', swatch: '#4f46e5' },
-  { id: 'ocean', label: 'Ocean', swatch: '#0369a1' },
-  { id: 'forest', label: 'Forest', swatch: '#047857' },
-  { id: 'sunset', label: 'Sunset', swatch: '#c2410c' },
-  { id: 'grape', label: 'Grape', swatch: '#7e22ce' },
-  { id: 'rose', label: 'Rose', swatch: '#be123c' },
+/**
+ * Colour themes chosen for schools; Ocean teal is the default. Each has a short reason so people can pick one
+ * that suits their school's own colours.
+ */
+export const ACCENTS: { id: Accent; swatch: string; en: string; sw: string }[] = [
+  { id: 'teal', swatch: '#0e6672', en: 'Ocean teal', sw: 'Bahari' },
+  { id: 'navy', swatch: '#1b3a6b', en: 'Academic navy', sw: 'Bluu ya kitaaluma' },
+  { id: 'ocean', swatch: '#1d4ed8', en: 'Royal blue', sw: 'Bluu angavu' },
+  { id: 'forest', swatch: '#276234', en: 'School green', sw: 'Kijani' },
+  { id: 'rose', swatch: '#8c1d40', en: 'Maroon', sw: 'Damu ya mzee' },
+  { id: 'purple', swatch: '#5b21b6', en: 'Royal purple', sw: 'Zambarau' },
+  { id: 'sunset', swatch: '#a8401b', en: 'Terracotta', sw: 'Udongo' },
+  { id: 'indigo', swatch: '#4338ca', en: 'Indigo', sw: 'Nili' },
 ];
 
 export function ColourPicker() {
   const { user, updatePreferences } = useAuth();
   const p = user?.preferences && Object.keys(user.preferences).length ? user.preferences : loadPreferences();
-  const current = p.accent ?? 'purple';
+  const { lang } = useI18n();
+  const current = p.accent ?? 'teal';
   return (
     <div className="swatches" role="radiogroup" aria-label="Colour theme">
       {ACCENTS.map((a) => (
@@ -44,7 +48,7 @@ export function ColourPicker() {
           onClick={() => updatePreferences({ accent: a.id })}
         >
           <span className="dot" style={{ background: a.swatch }} aria-hidden />
-          {a.label}
+          {lang === 'sw' ? a.sw : a.en}
           {current === a.id && <Check size={14} style={{ marginLeft: 'auto' }} aria-hidden />}
         </button>
       ))}
