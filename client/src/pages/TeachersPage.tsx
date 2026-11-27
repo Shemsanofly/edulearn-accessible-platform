@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { Course, CreatedAccount, TeacherDetail, TeacherInput, TeacherListItem } from '../../../shared/types';
 import { Modal } from '../components/Modal';
+import { ImportExportMenu } from '../components/ExcelTools';
 import { useToast } from '../components/Toast';
 import {
   Avatar, Badge, Button, ButtonLink, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader,
@@ -333,6 +334,7 @@ export function TeachersPage() {
         description={t('desc')}
         actions={
           <>
+            <ImportExportMenu target={{ kind: 'teachers' }} />
             <ButtonLink to="/invitations?new=1&as=teacher" icon={<MailPlus size={17} />}>{tc('inviteSomeone')}</ButtonLink>
             <Button variant="primary" icon={<UserPlus size={18} />} onClick={() => openForm(null)}>{t('add')}</Button>
           </>

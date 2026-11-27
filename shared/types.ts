@@ -938,7 +938,18 @@ export interface RegisterInput {
 // ---------------------------------------------------------------------------
 // Excel templates, import and export
 // ---------------------------------------------------------------------------
-export type ImportKind = 'marks' | 'attendance';
+export type ImportKind = 'marks' | 'attendance' | 'students' | 'teachers' | 'parents';
+export type PeopleKind = 'students' | 'teachers' | 'parents';
+/** Templates come as Excel or CSV; exports also as PDF. */
+export type FileFormat = 'xlsx' | 'csv' | 'pdf';
+
+/** Sign-in details for accounts created by an import. Shown once, never stored. */
+export interface ImportedAccount {
+  name: string;
+  email: string;
+  identifier: string | null;
+  temporaryPassword: string;
+}
 /** What saving would do to one row of the uploaded file. */
 export type ImportAction = 'create' | 'update' | 'unchanged' | 'skip' | 'error';
 
@@ -988,4 +999,6 @@ export interface ImportResult {
   updated: number;
   unchanged: number;
   title: string;
+  /** Only for people imports that created accounts. */
+  accounts?: ImportedAccount[];
 }

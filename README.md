@@ -9,7 +9,7 @@ and phones.
 | **Frontend** | React 19 · Vite · TypeScript · TanStack Query · React Router |
 | **Backend** | Node.js · Express 5 · TypeScript · zod validation · JWT sessions in httpOnly cookies |
 | **Database** | PostgreSQL 14+ (plain SQL migrations) |
-| **Tests** | Vitest + Supertest integration tests against a real database (79 tests) |
+| **Tests** | Vitest + Supertest integration tests against a real database (88 tests) |
 
 > The whole application is TypeScript. `legacy/` holds the original HTML prototype for reference only;
 > `.gitattributes` excludes it from GitHub's language statistics.
@@ -35,7 +35,9 @@ of each token is stored. Administrators can still create accounts directly with 
 - Dashboard: students, teachers, parents, classes, today's attendance, outstanding fees, academic performance of the
   latest exam, recent activity, alerts, and a "get your school set up" checklist for new schools
 - **Students** (photos, admission numbers, classes, status, support needs), **teachers** (subjects & classes),
-  **parents/guardians** (one parent ↔ many children)
+  **parents/guardians** (one parent ↔ many children), each with an **Import/Export** menu for adding or updating many
+  people at once from Excel or CSV and exporting the list as Excel, CSV or PDF (see the
+  [admin guide](#admin-guide-importing-students-teachers-and-parents))
 - **Classes, subjects, academic years and terms**; class level names are configurable (Form / Standard / Grade)
 - **Timetable** builder that refuses clashes (class, teacher or room double-booked)
 - **Attendance** overview, history and reports
@@ -45,25 +47,29 @@ of each token is stored. Administrators can still create accounts directly with 
 - **Fees** in TZS: fee structures per level, bill a class without double billing, record (part-)payments, numbered
   **receipts**, outstanding balances, fee reminders, financial reports
 - **Announcements**, calendar (incl. Tanzanian public holidays in the sample data), messages
-- **Reports** with Excel (CSV) export and print / save as PDF: attendance, academic, financial, teachers, students
+- **Reports** with CSV export and print / save as PDF: attendance, academic, financial, teachers, students
 - **Audit log** of important administrative actions, **school settings** (name, logo, motto, contacts, currency,
   default language, level label)
 
 ### Teachers (limited to their own classes and subjects)
 Dashboard, my classes, attendance register (keyboard shortcuts P/L/A/E), gradebook, exam mark entry, assignments with
 file attachments, timetable, class announcements, messages with parents, student profiles, class reports, and
-**Excel templates, import and export** for marks and attendance (see the [teacher guide](#teacher-guide-excel-templates)).
+an **Import/Export** menu (Excel, CSV and PDF) for marks and attendance (see the [teacher guide](#teacher-guide-excel-templates)).
 Teachers cannot see finances, create accounts or change school settings.
 
 ### Teacher guide: Excel templates
-Use Excel when it's easier to fill in marks or a register offline. The **Gradebook** (open a course) and **Attendance**
-pages each have three buttons:
+Use Excel (or any spreadsheet that saves CSV) when it's easier to fill in marks or a register offline. The
+**Gradebook** (open a course) and **Attendance** pages have an **Import/Export** button that opens this menu:
 
-| Button | What it does |
-|---|---|
-| **Template** | Downloads an `.xlsx` file for one assessment (choose the term and assessment) or one register date. It lists your class with admission numbers and names, and fills in anything already saved. |
-| **Import** | Uploads the completed template, shows a review, and saves only when you confirm. |
-| **Export** | Downloads a read-only copy: the whole gradebook for the course, or attendance for a date range. |
+| Group | Options | What they do |
+|---|---|---|
+| **Import from file** | Import from CSV · Import from Excel | Uploads a completed template, shows a review, and saves only when you confirm. |
+| **Export** | Export to CSV · Excel · PDF | Downloads a copy: the whole gradebook for the course, or attendance for a date range. |
+| **Download templates** | CSV template · Excel template | A file for one assessment (choose the term and assessment) or one register date. It lists your class with admission numbers and names, and fills in anything already saved. |
+
+Excel templates have drop-down lists and lock the columns you mustn't change. CSV templates work in any spreadsheet
+program: keep the first row (`EduLearn template — keep this row unchanged`) as it is, because it ties the file to
+your class. Commas, semicolons and tabs are all understood, as are decimal commas (`7,5`).
 
 **Filling in marks**
 - Type a mark from 0 to the maximum shown in the column heading. **0 is a mark**; a blank cell means "no change" and
@@ -80,7 +86,7 @@ admission number and every file is tied to its class and assessment (or date), s
 uploaded to another.
 
 **Importing**
-1. Click **Import**, choose the same assessment (or date) and pick your file, then **Check file**.
+1. Open **Import/Export › Import from Excel** (or CSV), choose the same assessment (or date) and pick your file, then **Check file**.
 2. The review shows how many records are new, will change or are unchanged, and every problem with its Excel row,
    student and column. Fix problems in Excel and upload again: nothing is saved while any remain. **Download error
    report** gives you the list as a spreadsheet.
@@ -92,6 +98,29 @@ Each import is recorded (who, when, what changed) and appears in the audit log.
 
 Imported marks follow the normal process: exam results still reach parents only when the office publishes them.
 Imported absences notify parents exactly like the on-screen register. Small corrections are still quickest on screen.
+
+### Admin guide: importing students, teachers and parents
+The **Students**, **Teachers** and **Parents** pages each have an **Import/Export** menu with the same three groups.
+Use it to add a whole intake at once or to update many records together.
+
+1. **Download templates › Excel template** (or CSV). The students template includes a list of your classes.
+2. Fill in one person per row. Required for new people: first name, last name and email. Students also take
+   admission number, class, date of birth (YYYY-MM-DD or DD/MM/YYYY), gender, phone and address; teachers take
+   employee number, specialization, qualification and start date; parents take their children's admission numbers
+   (separated by `;`) and relationship (mother, father, guardian…).
+3. **Import from file**, check the review and save. Every row is checked with the same rules as the on-screen form,
+   and nothing is saved while any problem remains.
+
+**How rows are matched:** students by admission number, teachers by employee number, parents by email. A row with a
+number the school doesn't have yet creates a new person with that number; leave it blank to have one assigned
+(STU-…, TCH-…). Changes to existing people are listed field by field and need your confirmation before saving.
+
+**To update existing people**, choose **Export › Excel** (or CSV), edit the file and import it again; Excel and CSV
+exports are signed templates. PDF exports are for printing only. A blank cell keeps what is saved.
+
+**New accounts** get a temporary password, shown once on the success screen with **Download sign-in details**.
+Share each one privately; passwords are not stored in the import record and can't be shown again (use **Reset password**
+on the person's row if needed). Administrator accounts can't be created by import; invite them instead.
 
 ### Parents (designed for phones)
 Switch between children; results and printable **report cards**, progress charts, attendance and late/absence
@@ -221,7 +250,7 @@ In Docker: `docker compose exec app node server/dist/db/cli.js deactivate-demo [
 ```
 ├── shared/types.ts            # API contract shared by server and client
 ├── server/
-│   ├── migrations/            # 001_init.sql … 004_imports.sql (applied automatically on start)
+│   ├── migrations/            # 001_init.sql … 005_people_imports.sql (applied automatically on start)
 │   ├── src/routes/            # auth, students, teachers, parents, academics, attendance, assessments,
 │   │                          # exams, fees, reports, communication, invitations, platform (settings, audit…)
 │   ├── src/lib/               # access rules, audit, notifications, grading, phone numbers, settings
@@ -242,12 +271,13 @@ Core: `users`, `students`, `teachers`, `guardians` (parent ↔ student, many-to-
 `grading_scales`, `grade_bands`, `fee_structures`, `invoices`, `payments` (numbered receipts), `announcements`,
 `events`, `messages`, `notifications`, `audit_logs`, `password_resets`, `user_photos`, `assessment_files`,
 `school_settings`, `school_logo`, `contact_requests`, `invitations` (hashed one-time tokens, role and details fixed by
-the administrator), `data_imports` (each Excel import: who, when, counts and the before/after of every changed record).
+the administrator), `data_imports` (each import from Excel or CSV: who, when, counts and the before/after of every changed record).
 A grade is either a score or a status (`absent` / `exempt`).
 
-Add a schema change as a new numbered file (e.g. `server/migrations/005_library.sql`); it runs on the next start.
+Add a schema change as a new numbered file (e.g. `server/migrations/006_library.sql`); it runs on the next start.
 Upgrading an existing installation only needs a restart: `003_invitations.sql` adds the `invitations` table and
-`004_imports.sql` adds grade statuses and the `data_imports` table. Neither changes existing rows.
+`004_imports.sql` adds grade statuses and the `data_imports` table, and `005_people_imports.sql` lets that table
+record student, teacher and parent imports. None of them changes existing rows.
 
 ## Fonts, icons and images
 

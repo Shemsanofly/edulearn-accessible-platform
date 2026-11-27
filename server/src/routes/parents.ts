@@ -1,14 +1,10 @@
 import { Router } from 'express';
-import type pg from 'pg';
-import { z } from 'zod';
 import type { CreatedAccount, ParentListItem } from '../../../shared/types.js';
 import { query, queryOne, transaction } from '../db/pool.js';
-import { createUser, updateUser } from '../lib/accounts.js';
+import { insertParent, parentSchema, patchParent } from '../lib/people.js';
 import { audit } from '../lib/audit.js';
-import { phone } from '../lib/phone.js';
 import { intParam, notFound, orderBy, pageParams, parse, provided } from '../lib/http.js';
 import { PHOTO_URL } from '../lib/sql.js';
-import { email, id, name, optionalText, password } from '../lib/validators.js';
 import { requireRole } from '../middleware/auth.js';
 
 export const parentsRouter = Router();
@@ -25,29 +21,6 @@ const PARENT_SELECT = `
                      LEFT JOIN classes c ON c.id = s.class_id
                     WHERE g.parent_id = u.id), '[]'::json) AS children
     FROM users u`;
-
-const childSchema = z.object({ studentId: id, relationship: z.string().trim().min(1).max(40).default('guardian') });
-
-const parentSchema = z.object({
-  firstName: name,
-  lastName: name,
-  email,
-  password: password.optional(),
-  phone,
-  isActive: z.boolean().optional(),
-  children: z.array(childSchema).max(20).optional(),
-});
-
-async function setChildren(db: pg.PoolClient, parentId: number, children: { studentId: number; relationship: string }[]) {
-  await query('DELETE FROM guardians WHERE parent_id = $1', [parentId], db);
-  for (const child of children) {
-    await query(
-      'INSERT INTO guardians (parent_id, student_id, relationship) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-      [parentId, child.studentId, child.relationship],
-      db,
-    );
-  }
-}
 
 const loadParent = (parentId: number) =>
   queryOne<ParentListItem>(`${PARENT_SELECT} WHERE u.id = $1 AND u.role = 'parent'`, [parentId]);
@@ -80,11 +53,7 @@ parentsRouter.get('/:id', async (req, res) => {
 
 parentsRouter.post('/', async (req, res) => {
   const body = parse(parentSchema, req.body);
-  const account = await transaction(async (db) => {
-    const acc = await createUser(db, { ...body, role: 'parent' });
-    if (body.children) await setChildren(db, acc.id, body.children);
-    return acc;
-  });
+  const account = await transaction((db) => insertParent(db, body));
   await audit(req, { action: 'create', entity: 'parent', entityId: account.id, summary: `Registered parent ${body.firstName} ${body.lastName}`, details: { children: body.children?.length ?? 0 } });
   const payload: CreatedAccount<ParentListItem> = { record: (await loadParent(account.id))!, temporaryPassword: account.temporaryPassword };
   res.status(201).json(payload);
@@ -94,10 +63,7 @@ parentsRouter.patch('/:id', async (req, res) => {
   const parentId = intParam(req.params.id);
   const body = provided(parse(parentSchema.partial(), req.body), req.body);
   if (!(await loadParent(parentId))) throw notFound('Parent');
-  await transaction(async (db) => {
-    await updateUser(db, parentId, body);
-    if (body.children) await setChildren(db, parentId, body.children);
-  });
+  await transaction((db) => patchParent(db, parentId, body));
   const updated = await loadParent(parentId);
   await audit(req, { action: 'update', entity: 'parent', entityId: parentId, summary: `Updated ${updated!.firstName} ${updated!.lastName}`, details: { fields: Object.keys(body) } });
   res.json(updated);

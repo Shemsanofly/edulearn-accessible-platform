@@ -12,7 +12,7 @@
  * always save what they reviewed. Writes go through the same functions as manual entry.
  */
 import crypto from 'node:crypto';
-import express, { Router, type Request } from 'express';
+import express, { Router } from 'express';
 import type pg from 'pg';
 import type {
   AttendanceStatus, GradeStatus, ImportIssue, ImportKind, ImportPreview, ImportPreviewRow, ImportResult, SessionUser,
@@ -25,7 +25,7 @@ import { badRequest, conflict, intParam, notFound, parse } from '../lib/http.js'
 import { notifyAttendance, saveAttendance, saveGrades, scoreProblem, type AttendanceWrite, type GradeWrite } from '../lib/records.js';
 import { loadSettings } from '../lib/settings.js';
 import { isoDate } from '../lib/validators.js';
-import { buildWorkbook, readCell, readTemplate, sendWorkbook, type Template } from '../lib/xlsx.js';
+import { formatParam, readCell, readTemplate, sendTable, type SheetSpec, type Template } from '../lib/xlsx.js';
 import { me, requireRole } from '../middleware/auth.js';
 
 export const importsRouter = Router();
@@ -38,8 +38,8 @@ const fullNameOf = (s: { firstName: string; lastName: string }) => `${s.firstNam
 const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const sameName = (a: string, s: { firstName: string; lastName: string }) =>
   norm(a) === norm(`${s.firstName} ${s.lastName}`) || norm(a) === norm(`${s.lastName} ${s.firstName}`);
-const clip = (s: string, n = 40) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
-const sha256 = (data: string | Buffer) => crypto.createHash('sha256').update(data).digest('hex');
+export const clip = (s: string, n = 40) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+export const sha256 = (data: string | Buffer) => crypto.createHash('sha256').update(data).digest('hex');
 
 interface StudentRow { id: number; admissionNo: string; firstName: string; lastName: string; classId: number | null; isActive: boolean }
 
@@ -64,7 +64,7 @@ async function studentsByAdmission(numbers: string[], db: Db) {
 }
 
 /** Shared bookkeeping for one analysis: rows, issues and counts. */
-class Review {
+export class Review {
   rows: ImportPreviewRow[] = [];
   issues: ImportIssue[] = [];
   notices: string[] = [];
@@ -88,11 +88,11 @@ class Review {
 }
 
 /** Read every non-empty row under the header, by the column keys stored in the template. */
-function* templateRows(tpl: Template) {
+export function* templateRows(tpl: Template) {
   const col = (key: string) => tpl.meta.columns.indexOf(key) + 1;
   for (let r = tpl.meta.headerRow + 1; r <= tpl.sheet.rowCount; r++) {
     const row = tpl.sheet.getRow(r);
-    const get = (key: string) => (col(key) > 0 ? readCell(row.getCell(col(key)).value) : { text: '', num: null, error: null });
+    const get = (key: string) => (col(key) > 0 ? readCell(row.getCell(col(key)).value) : { text: '', num: null, error: null, date: null });
     const cells = Object.fromEntries(tpl.meta.columns.map((k) => [k, get(k)]));
     if (Object.entries(cells).every(([k, c]) => k === 'no' || (!c.text && !c.error))) continue;
     yield { row: r, cells, get };
@@ -275,6 +275,7 @@ async function analyseMarks(tpl: Template, assessmentId: number, user: SessionUs
 
 importsRouter.get('/marks/template', async (req, res) => {
   const assessmentId = intParam(req.query.assessmentId, 'assessmentId');
+  const format = formatParam(req.query.format, false);
   const ctx = await marksContext(assessmentId);
   await assertCanManageCourse(me(req), ctx.courseId);
   const [roster, stored, school] = await Promise.all([
@@ -283,7 +284,7 @@ importsRouter.get('/marks/template', async (req, res) => {
     loadSettings(),
   ]);
   const grades = new Map(stored.map((g) => [g.studentId, g]));
-  const buffer = await buildWorkbook({
+  const spec: SheetSpec = {
     sheetName: 'Marks',
     title: `${school.name} — marks template`,
     details: [
@@ -295,7 +296,7 @@ importsRouter.get('/marks/template', async (req, res) => {
       'A blank cell keeps what is already saved. Blank never erases a mark or turns into 0.',
       'If a student missed the assessment or was excused, choose ABSENT or EXEMPT instead of a mark.',
       'Don’t change admission numbers or names, and don’t add students: rows are matched by admission number.',
-      'Upload the file in EduLearn (Gradebook › Import). You will see a review before anything is saved.',
+      'Upload the file in EduLearn (Gradebook › Import/Export › Import). You will see a review before anything is saved.',
     ],
     columns: [
       { key: 'no', header: 'No.', width: 6, align: 'right' },
@@ -319,8 +320,8 @@ importsRouter.get('/marks/template', async (req, res) => {
       return [i + 1, s.admissionNo, fullNameOf(s), g?.score ?? null, g?.status ? g.status.toUpperCase() : null, g?.feedback ?? null];
     }),
     meta: { kind: 'marks', assessmentId, courseId: ctx.courseId, classId: ctx.classId, maxScore: ctx.maxScore, title: ctx.title, className: ctx.className },
-  });
-  sendWorkbook(res, `marks-${ctx.className}-${ctx.subjectName}-${ctx.title}.xlsx`, buffer);
+  };
+  await sendTable(res, `marks-${ctx.className}-${ctx.subjectName}-${ctx.title}`, format, spec);
 });
 
 importsRouter.post('/marks/preview', upload, async (req, res) => {
@@ -367,6 +368,7 @@ importsRouter.post('/marks/commit', upload, async (req, res) => {
 
 importsRouter.get('/marks/export', async (req, res) => {
   const courseId = intParam(req.query.courseId, 'courseId');
+  const format = formatParam(req.query.format, true);
   await assertCanViewCourse(me(req), courseId);
   const course = await queryOne<{ classId: number; className: string; subjectName: string; teacherName: string | null }>(
     `SELECT cs.class_id, c.name AS class_name, sub.name AS subject_name,
@@ -404,7 +406,7 @@ importsRouter.get('/marks/export', async (req, res) => {
     const avg = percents.length ? Math.round((percents.reduce((x, y) => x + y, 0) / percents.length) * 10) / 10 : null;
     return [i + 1, s.admissionNo, fullNameOf(s), ...cells, avg, bandFor(avg, scale?.bands ?? [])?.grade ?? null];
   });
-  const buffer = await buildWorkbook({
+  const spec: SheetSpec = {
     sheetName: 'Gradebook',
     title: `${school.name} — gradebook`,
     details: [['Class', course.className], ['Subject', course.subjectName], ['Teacher', course.teacherName ?? '—'], ['Exported', new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })]],
@@ -419,8 +421,8 @@ importsRouter.get('/marks/export', async (req, res) => {
     ],
     rows,
     footerNote: 'Read-only export. To change marks, download a template for one assessment and import it.',
-  });
-  sendWorkbook(res, `gradebook-${course.className}-${course.subjectName}.xlsx`, buffer);
+  };
+  await sendTable(res, `gradebook-${course.className}-${course.subjectName}`, format, spec);
 });
 
 // ===========================================================================================================
@@ -502,6 +504,7 @@ const dateParam = (v: unknown) => parse(isoDate, v);
 
 importsRouter.get('/attendance/template', async (req, res) => {
   const classId = intParam(req.query.classId, 'classId');
+  const format = formatParam(req.query.format, false);
   const date = dateParam(req.query.date);
   const ctx = await attendanceContext(classId, date, me(req));
   const [roster, stored, school] = await Promise.all([
@@ -510,7 +513,7 @@ importsRouter.get('/attendance/template', async (req, res) => {
     loadSettings(),
   ]);
   const existing = new Map(stored.map((a) => [a.studentId, a]));
-  const buffer = await buildWorkbook({
+  const spec: SheetSpec = {
     sheetName: 'Attendance',
     title: `${school.name} — attendance template`,
     details: [['Class', ctx.className], ['Date', date], ['Downloaded', new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })]],
@@ -519,7 +522,7 @@ importsRouter.get('/attendance/template', async (req, res) => {
       'A blank status keeps what is already saved for that student.',
       'Notes are optional (for example “Clinic visit”).',
       'Don’t change admission numbers or names, and don’t add students: rows are matched by admission number.',
-      'Upload the file in EduLearn (Attendance › Import). You will see a review before anything is saved.',
+      'Upload the file in EduLearn (Attendance › Import/Export › Import). You will see a review before anything is saved.',
     ],
     columns: [
       { key: 'no', header: 'No.', width: 6, align: 'right' },
@@ -536,8 +539,8 @@ importsRouter.get('/attendance/template', async (req, res) => {
       return [i + 1, s.admissionNo, fullNameOf(s), a ? ATTENDANCE_LABEL[a.status] : null, a?.note ?? null];
     }),
     meta: { kind: 'attendance', classId, date, className: ctx.className },
-  });
-  sendWorkbook(res, `attendance-${ctx.className}-${date}.xlsx`, buffer);
+  };
+  await sendTable(res, `attendance-${ctx.className}-${date}`, format, spec);
 });
 
 importsRouter.post('/attendance/preview', upload, async (req, res) => {
@@ -586,6 +589,7 @@ importsRouter.post('/attendance/commit', upload, async (req, res) => {
 
 importsRouter.get('/attendance/export', async (req, res) => {
   const classId = intParam(req.query.classId, 'classId');
+  const format = formatParam(req.query.format, true);
   const user = me(req);
   await assertCanTakeAttendance(user, classId);
   const to = req.query.to ? dateParam(req.query.to) : today();
@@ -612,7 +616,7 @@ importsRouter.get('/attendance/export', async (req, res) => {
     const rate = recorded ? Math.round(((count('present') + count('late')) / recorded) * 1000) / 10 : null;
     return [i + 1, s.admissionNo, fullNameOf(s), ...marks.map((m) => (m ? letter[m] : null)), count('present'), count('absent'), count('late'), count('excused'), rate];
   });
-  const buffer = await buildWorkbook({
+  const spec: SheetSpec = {
     sheetName: 'Attendance',
     title: `${school.name} — attendance`,
     details: [['Class', cls.name], ['From', from], ['To', to], ['Key', 'P present · A absent · L late · E excused']],
@@ -630,6 +634,6 @@ importsRouter.get('/attendance/export', async (req, res) => {
     ],
     rows,
     footerNote: dates.length ? 'Read-only export.' : 'No attendance was recorded for this class in these dates.',
-  });
-  sendWorkbook(res, `attendance-${cls.name}-${from}-to-${to}.xlsx`, buffer);
+  };
+  await sendTable(res, `attendance-${cls.name}-${from}-to-${to}`, format, spec);
 });

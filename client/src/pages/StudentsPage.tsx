@@ -6,6 +6,7 @@ import type {
   ClassListItem, CreatedAccount, Gender, Paginated, StudentDetail, StudentInput, StudentListItem,
 } from '../../../shared/types';
 import { useConfirm, Modal } from '../components/Modal';
+import { ImportExportMenu } from '../components/ExcelTools';
 import { useToast } from '../components/Toast';
 import {
   Avatar, Badge, Button, ButtonLink, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
@@ -672,9 +673,11 @@ export function StudentsPage() {
         description={isAdmin ? t('descAdmin') : t('descTeacher')}
         actions={
           <>
-            <Button icon={<Download size={17} />} onClick={exportCsv} loading={exporting} disabled={!data?.total}>
-              {tc('exportCsv')}
-            </Button>
+            {isAdmin ? <ImportExportMenu target={{ kind: 'students' }} /> : (
+              <Button icon={<Download size={17} />} onClick={exportCsv} loading={exporting} disabled={!data?.total}>
+                {tc('exportCsv')}
+              </Button>
+            )}
             {isAdmin && <ButtonLink to="/invitations?new=1&as=student" icon={<MailPlus size={17} />}>{tc('inviteSomeone')}</ButtonLink>}
             {isAdmin && (
               <Button variant="primary" icon={<UserPlus size={18} />} onClick={() => { setEditing(null); setFormOpen(true); }}>

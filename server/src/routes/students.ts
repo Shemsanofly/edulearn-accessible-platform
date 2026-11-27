@@ -1,36 +1,18 @@
 import { Router } from 'express';
-import { z } from 'zod';
 import type {
   AttendanceRecord, AttendanceSummary, CreatedAccount, Guardian, Invoice, Paginated, StudentDetail,
   StudentGrade, StudentListItem, StudentOverview, SubjectAverage, Assessment,
 } from '../../../shared/types.js';
 import { query, queryOne, transaction } from '../db/pool.js';
 import { assertCanViewStudent } from '../lib/access.js';
-import { createUser, nextCode, updateUser } from '../lib/accounts.js';
+import { insertStudent, patchStudent, studentSchema } from '../lib/people.js';
 import { audit } from '../lib/audit.js';
-import { phone } from '../lib/phone.js';
 import { intParam, notFound, orderBy, pageParams, parse, provided } from '../lib/http.js';
 import { ASSESSMENT_SELECT, INVOICE_SELECT, STUDENT_SELECT } from '../lib/sql.js';
-import { email, id, isoDate, name, optionalText, password } from '../lib/validators.js';
 import { me, requireRole } from '../middleware/auth.js';
 
 export const studentsRouter = Router();
 
-const studentSchema = z.object({
-  firstName: name,
-  lastName: name,
-  email,
-  password: password.optional(),
-  phone,
-  admissionNo: z.string().trim().max(40).optional(),
-  classId: id.nullish(),
-  dateOfBirth: isoDate.nullish(),
-  gender: z.enum(['male', 'female', 'other', 'unspecified']).default('unspecified'),
-  address: optionalText(300),
-  accessibilityNeeds: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
-  medicalNotes: optionalText(1000),
-  isActive: z.boolean().optional(),
-});
 
 // List — admins see everyone, teachers see students in classes they teach.
 studentsRouter.get('/', requireRole('admin', 'teacher'), async (req, res) => {
@@ -90,18 +72,7 @@ export async function loadStudent(studentId: number): Promise<StudentDetail | nu
 
 studentsRouter.post('/', requireRole('admin'), async (req, res) => {
   const body = parse(studentSchema, req.body);
-  const result = await transaction(async (db) => {
-    const account = await createUser(db, { ...body, role: 'student' });
-    const admissionNo = body.admissionNo || (await nextCode(db, 'students', 'admission_no', 'STU'));
-    await query(
-      `INSERT INTO students (user_id, admission_no, class_id, date_of_birth, gender, address, accessibility_needs, medical_notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [account.id, admissionNo, body.classId ?? null, body.dateOfBirth ?? null, body.gender, body.address,
-        body.accessibilityNeeds, body.medicalNotes],
-      db,
-    );
-    return account;
-  });
+  const result = await transaction((db) => insertStudent(db, body));
   await audit(req, { action: 'create', entity: 'student', entityId: result.id, summary: `Enrolled ${body.firstName} ${body.lastName}` });
   const payload: CreatedAccount<StudentDetail> = {
     record: (await loadStudent(result.id))!,
@@ -121,24 +92,7 @@ studentsRouter.patch('/:id', requireRole('admin'), async (req, res) => {
   const body = provided(parse(studentSchema.partial(), req.body), req.body);
   const exists = await queryOne('SELECT 1 FROM students WHERE user_id = $1', [studentId]);
   if (!exists) throw notFound('Student');
-  await transaction(async (db) => {
-    await updateUser(db, studentId, body);
-    await query(
-      `UPDATE students SET
-         admission_no = COALESCE($2, admission_no),
-         class_id = CASE WHEN $3::boolean THEN $4 ELSE class_id END,
-         date_of_birth = CASE WHEN $5::boolean THEN $6::date ELSE date_of_birth END,
-         gender = COALESCE($7, gender),
-         address = CASE WHEN $8::boolean THEN $9 ELSE address END,
-         accessibility_needs = COALESCE($10, accessibility_needs),
-         medical_notes = CASE WHEN $11::boolean THEN $12 ELSE medical_notes END
-       WHERE user_id = $1`,
-      [studentId, body.admissionNo || null, 'classId' in body, body.classId ?? null, 'dateOfBirth' in body,
-        body.dateOfBirth ?? null, body.gender ?? null, 'address' in body, body.address ?? null,
-        body.accessibilityNeeds ?? null, 'medicalNotes' in body, body.medicalNotes ?? null],
-      db,
-    );
-  });
+  await transaction((db) => patchStudent(db, studentId, body));
   const updated = await loadStudent(studentId);
   await audit(req, { action: 'update', entity: 'student', entityId: studentId, summary: `Updated ${updated!.firstName} ${updated!.lastName}`, details: { fields: Object.keys(body) } });
   res.json(updated);

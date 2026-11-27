@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { CreatedAccount, Paginated, ParentInput, ParentListItem, StudentListItem } from '../../../shared/types';
 import { Modal } from '../components/Modal';
+import { ImportExportMenu } from '../components/ExcelTools';
 import { useToast } from '../components/Toast';
 import {
   Alert, Avatar, Badge, Button, ButtonLink, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
@@ -302,6 +303,7 @@ export function ParentsPage() {
         description={t('desc')}
         actions={
           <>
+            <ImportExportMenu target={{ kind: 'parents' }} />
             <ButtonLink to="/invitations?new=1&as=parent" icon={<MailPlus size={17} />}>{tc('inviteSomeone')}</ButtonLink>
             <Button variant="primary" icon={<UserPlus size={18} />} onClick={() => openForm(null)}>{t('add')}</Button>
           </>

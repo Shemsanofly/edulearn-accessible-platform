@@ -292,9 +292,11 @@ describe('marks import', () => {
     expect(bad.status).toBe(400);
     expect(bad.body.error).toMatch(/were changed/);
 
-    const notExcel = await upload(teacher, marksUrl('preview', a1), Buffer.from('name,mark\nAli,4'));
-    expect(notExcel.status).toBe(400);
-    expect(notExcel.body.error).toMatch(/isn’t an Excel workbook/);
+    const plainCsv = await upload(teacher, marksUrl('preview', a1), Buffer.from('name,mark\nAli,4'));
+    expect(plainCsv.status).toBe(400);
+    expect(plainCsv.body.error).toMatch(/isn’t an EduLearn template/);
+    const binary = await upload(teacher, marksUrl('preview', a1), Buffer.from([0, 1, 2, 3, 0, 9]));
+    expect(binary.body.error).toMatch(/isn’t an Excel workbook \(\.xlsx\) or a CSV file/);
 
     const plain = new ExcelJS.Workbook();
     plain.addWorksheet('Sheet1').getCell('A1').value = 'Admission No';
