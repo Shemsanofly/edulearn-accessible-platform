@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Award, BookOpen, Download, Eye, FileUp, NotebookPen, Paperclip, Pencil, Plus, Save, Trash2, Undo2, Users, X,
+  ArrowLeft, Award, BookOpen, Eye, FileUp, NotebookPen, Paperclip, Pencil, Plus, Save, Trash2, Undo2, Users, X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import type { Assessment, AssessmentInput, AssessmentType, AttachmentInfo, Course, Gradebook } from '../../../shared/types';
+import type { Assessment, AssessmentInput, AssessmentType, AttachmentInfo, Course, Gradebook, GradeStatus } from '../../../shared/types';
+import { ExcelTools } from '../components/ExcelTools';
 import { Modal, useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
@@ -13,7 +14,6 @@ import {
 } from '../components/ui';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { useUser } from '../lib/auth';
-import { downloadCsv, slug } from '../lib/export';
 import { formatShortDate, fullName, gradeTone, letterGrade, percent } from '../lib/format';
 import { useI18n, useT } from '../lib/i18n';
 
@@ -27,8 +27,7 @@ const M = {
     fixScores: 'Some scores need fixing', cellsRed: '{n} highlighted in red.',
     scoresSaved: 'Scores saved', scoresUpdated: '{n} scores updated.', oneScoreUpdated: '1 score updated.',
     assessmentDeleted: 'Assessment deleted',
-    csvAdmission: 'Admission no', csvStudent: 'Student', csvAverage: 'Average %',
-    taughtBy: 'Taught by {name}', exportCsv: 'Export to Excel (CSV)', newAssessment: 'New assessment',
+    taughtBy: 'Taught by {name}', newAssessment: 'New assessment',
     viewOnlyBody: 'Only {name} can enter scores for this course.', theTeacher: 'the course teacher',
     classAverage: 'Class average', grade: 'Grade {g}', assessments: 'Assessments', students: 'Students',
     scoresMissing: 'Scores missing', acrossAll: 'Across all assessments', caughtUp: 'All caught up',
@@ -40,7 +39,7 @@ const M = {
     edit: 'Edit {title}', delete: 'Delete {title}', deleteTitle: 'Delete “{title}”?',
     deleteWithScores: 'This also deletes {n} recorded scores. This can’t be undone.', cantUndo: 'This can’t be undone.',
     deleteAssessment: 'Delete assessment', cellLabel: '{name}, {title}, out of {max}',
-    allSaved: 'All scores saved. Leave a cell empty to clear a score.',
+    allSaved: 'All scores saved. Type ABS or EX for absent or exempt; leave a cell empty to clear it.',
     unsaved: '{n} unsaved changes', unsavedOne: '1 unsaved change', needFixing: '{n} need fixing',
     discard: 'Discard',
     updated: 'Assessment updated', created: 'Assessment created', enterInColumn: 'Enter scores in the new column.',
@@ -65,8 +64,7 @@ const M = {
     fixScores: 'Baadhi ya alama zinahitaji kurekebishwa', cellsRed: 'Visanduku {n} vimewekwa rangi nyekundu.',
     scoresSaved: 'Alama zimehifadhiwa', scoresUpdated: 'Alama {n} zimesasishwa.', oneScoreUpdated: 'Alama 1 imesasishwa.',
     assessmentDeleted: 'Tathmini imefutwa',
-    csvAdmission: 'Namba ya usajili', csvStudent: 'Mwanafunzi', csvAverage: 'Wastani %',
-    taughtBy: 'Linafundishwa na {name}', exportCsv: 'Hamisha kwa Excel (CSV)', newAssessment: 'Tathmini mpya',
+    taughtBy: 'Linafundishwa na {name}', newAssessment: 'Tathmini mpya',
     viewOnlyBody: 'Ni {name} pekee anayeweza kuingiza alama za somo hili.', theTeacher: 'mwalimu wa somo',
     classAverage: 'Wastani wa darasa', grade: 'Daraja {g}', assessments: 'Tathmini', students: 'Wanafunzi',
     scoresMissing: 'Alama zinazokosekana', acrossAll: 'Katika tathmini zote', caughtUp: 'Zote zimekamilika',
@@ -78,7 +76,7 @@ const M = {
     edit: 'Hariri {title}', delete: 'Futa {title}', deleteTitle: 'Futa “{title}”?',
     deleteWithScores: 'Hii pia itafuta alama {n} zilizorekodiwa. Haiwezi kutenduliwa.', cantUndo: 'Haiwezi kutenduliwa.',
     deleteAssessment: 'Futa tathmini', cellLabel: '{name}, {title}, kati ya {max}',
-    allSaved: 'Alama zote zimehifadhiwa. Acha kisanduku wazi kufuta alama.',
+    allSaved: 'Alama zote zimehifadhiwa. Andika ABS au EX kwa hayupo au amesamehewa; acha wazi kufuta.',
     unsaved: 'Mabadiliko {n} hayajahifadhiwa', unsavedOne: 'Badiliko 1 halijahifadhiwa', needFixing: '{n} vinahitaji kurekebishwa',
     discard: 'Achana nayo',
     updated: 'Tathmini imesasishwa', created: 'Tathmini imeundwa', enterInColumn: 'Ingiza alama kwenye safu mpya.',
@@ -184,6 +182,14 @@ function CoursePicker() {
 
 // ---------------------------------------------------------------- Course gradebook
 const cellKey = (assessmentId: number, studentId: number) => `${assessmentId}:${studentId}`;
+/** Absent and exempt are typed as ABS and EX in a score cell, the same codes the Excel template accepts. */
+const STATUS_CODE: Record<GradeStatus, string> = { absent: 'ABS', exempt: 'EX' };
+const parseStatus = (raw: string): GradeStatus | null => {
+  const v = raw.trim().toUpperCase();
+  if (v === 'ABS' || v === 'ABSENT') return 'absent';
+  if (v === 'EX' || v === 'EXEMPT') return 'exempt';
+  return null;
+};
 
 function CourseGradebook({ courseId }: { courseId: number }) {
   const user = useUser();
@@ -204,14 +210,17 @@ function CourseGradebook({ courseId }: { courseId: number }) {
 
   const original = useMemo(() => {
     const out: Record<string, string> = {};
-    gb?.rows.forEach((r) => gb.assessments.forEach((a) => (out[cellKey(a.id, r.id)] = r.scores[a.id] == null ? '' : String(r.scores[a.id]))));
+    gb?.rows.forEach((r) => gb.assessments.forEach((a) => {
+      const status = r.statuses?.[a.id];
+      out[cellKey(a.id, r.id)] = status ? STATUS_CODE[status] : r.scores[a.id] == null ? '' : String(r.scores[a.id]);
+    }));
     return out;
   }, [gb]);
 
   const maxById = useMemo(() => new Map(gb?.assessments.map((a) => [a.id, a.maxScore]) ?? []), [gb]);
 
   const invalid = (key: string, value: string) => {
-    if (value.trim() === '') return null;
+    if (value.trim() === '' || parseStatus(value)) return null;
     const n = Number(value);
     const max = maxById.get(Number(key.split(':')[0])) ?? 0;
     if (Number.isNaN(n)) return t('enterNumber');
@@ -240,12 +249,13 @@ function CourseGradebook({ courseId }: { courseId: number }) {
       toast.error(t('fixScores'), t('cellsRed', { n: invalidKeys.length }));
       return;
     }
-    const byAssessment = new Map<number, { studentId: number; score: number | null }[]>();
+    const byAssessment = new Map<number, { studentId: number; score: number | null; status: GradeStatus | null }[]>();
     for (const k of dirtyKeys) {
       const [aid, sid] = k.split(':').map(Number) as [number, number];
       const raw = edits[k]!.trim();
       if (!byAssessment.has(aid)) byAssessment.set(aid, []);
-      byAssessment.get(aid)!.push({ studentId: sid, score: raw === '' ? null : Number(raw) });
+      const status = parseStatus(raw);
+      byAssessment.get(aid)!.push({ studentId: sid, score: raw === '' || status ? null : Number(raw), status });
     }
     setSaving(true);
     try {
@@ -272,15 +282,6 @@ function CourseGradebook({ courseId }: { courseId: number }) {
     onError: (err) => toast.error(err),
   });
 
-  const exportCsv = () => {
-    if (!gb) return;
-    downloadCsv(
-      `${slug(`${gb.course.className}-${gb.course.subjectName}`)}-grades`,
-      [t('csvAdmission'), t('csvStudent'), ...gb.assessments.map((a) => `${shortTitle(a, gb.course)} (/${a.maxScore})`), t('csvAverage'), c('grades')],
-      gb.rows.map((r) => [r.admissionNo, fullName(r), ...gb.assessments.map((a) => r.scores[a.id] ?? null), r.averagePercent, r.averagePercent === null ? '' : letterGrade(r.averagePercent)]),
-    );
-  };
-
   const moveFocus = (e: React.KeyboardEvent<HTMLInputElement>, row: number, col: number) => {
     let target: [number, number] | null = null;
     if (e.key === 'Enter' || e.key === 'ArrowDown') target = [row + 1, col];
@@ -306,7 +307,7 @@ function CourseGradebook({ courseId }: { courseId: number }) {
         description={course.teacherName ? t('taughtBy', { name: course.teacherName }) : t('noTeacher')}
         actions={
           <>
-            <Button icon={<Download size={17} />} onClick={exportCsv} disabled={!rows.length}>{t('exportCsv')}</Button>
+            <ExcelTools target={{ kind: 'marks', courseId, label: `${course.subjectName} · ${course.className}`, assessments, canEdit: !readOnly, defaultAssessmentId: highlight }} />
             {!readOnly && <Button variant="primary" icon={<Plus size={17} />} onClick={() => setEditing('new')}>{t('newAssessment')}</Button>}
           </>
         }

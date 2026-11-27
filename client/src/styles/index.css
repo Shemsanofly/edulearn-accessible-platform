@@ -614,6 +614,16 @@ a.list-item:hover { background: var(--surface-2); text-decoration: none; }
 @media (max-width: 640px) { .welcome h1 { font-size: 1.6rem; } }
 
 /* ================================================================ Feature blocks */
+/* Excel import review */
+.import-list { max-height: 360px; overflow-y: auto; }
+.import-list .list-item { padding: 10px 14px; gap: 12px; }
+.import-list .meta s { color: var(--text-subtle); }
+/* Counts inside dialogs and drawers stay compact: two columns, smaller numbers. */
+.dialog .stat-group, .drawer .stat-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dialog .stat-cell, .drawer .stat-cell { padding: 12px 16px 14px; }
+.dialog .stat-value, .drawer .stat-value { font-size: 1.35rem; margin-top: 4px; }
+.dialog .stat-group > :last-child:nth-child(odd), .drawer .stat-group > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+
 .lesson { display: flex; gap: 14px; align-items: stretch; padding: 12px 20px; border-bottom: 1px solid var(--border); }
 .lesson:last-child { border-bottom: 0; }
 .lesson-time { width: 64px; flex: none; font-variant-numeric: tabular-nums; font-size: 0.85rem; color: var(--text-muted); }

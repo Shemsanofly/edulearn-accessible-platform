@@ -7,6 +7,8 @@
 export type Role = 'admin' | 'teacher' | 'student' | 'parent';
 export type Gender = 'male' | 'female' | 'other' | 'unspecified';
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+/** A grade recorded without a score: the student missed it, or was excused from it. */
+export type GradeStatus = 'absent' | 'exempt';
 export type AssessmentType = 'assignment' | 'quiz' | 'test' | 'exam' | 'project';
 export type PaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'mobile_money' | 'other';
 export type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'overdue';
@@ -314,6 +316,8 @@ export interface AssessmentInput {
 export interface GradebookRow extends PersonRef {
   admissionNo: string;
   scores: Record<number, number | null>;
+  /** Assessments where the student is marked absent or exempt instead of having a score. */
+  statuses: Record<number, GradeStatus>;
   averagePercent: number | null;
 }
 
@@ -326,6 +330,7 @@ export interface Gradebook {
 export interface GradeInput {
   studentId: number;
   score: number | null;
+  status?: GradeStatus | null;
   feedback?: string | null;
 }
 
@@ -337,6 +342,7 @@ export interface StudentGrade {
   color: string;
   dueDate: string | null;
   score: number | null;
+  status: GradeStatus | null;
   maxScore: number;
   percent: number | null;
   feedback: string | null;
@@ -681,6 +687,8 @@ export interface ReportCardSubject {
   subjectName: string;
   teacherName: string | null;
   marks: number | null;
+  /** Set when the student was absent from, or exempt from, this paper. */
+  status: GradeStatus | null;
   maxMarks: number;
   percent: number | null;
   grade: string | null;
@@ -925,4 +933,59 @@ export interface RegisterInput {
   lastName: string;
   phone?: string | null;
   password: string;
+}
+
+// ---------------------------------------------------------------------------
+// Excel templates, import and export
+// ---------------------------------------------------------------------------
+export type ImportKind = 'marks' | 'attendance';
+/** What saving would do to one row of the uploaded file. */
+export type ImportAction = 'create' | 'update' | 'unchanged' | 'skip' | 'error';
+
+/** A problem with the file, located by Excel row and column. */
+export interface ImportIssue {
+  row: number | null;
+  column: string | null;
+  admissionNo: string | null;
+  studentName: string | null;
+  message: string;
+}
+
+export interface ImportPreviewRow {
+  row: number;
+  studentId: number | null;
+  admissionNo: string;
+  studentName: string;
+  action: ImportAction;
+  /** The value now stored, and the value the import would store, as readable text. */
+  before: string | null;
+  after: string | null;
+  /** Why the row is skipped or unchanged, when that isn't obvious. */
+  note: string | null;
+}
+
+export interface ImportPreview {
+  kind: ImportKind;
+  /** One-line description of what the file is for, plus the details shown in the review. */
+  title: string;
+  details: { label: string; value: string }[];
+  rows: ImportPreviewRow[];
+  issues: ImportIssue[];
+  /** Things worth knowing that don't block saving. */
+  notices: string[];
+  counts: { create: number; update: number; unchanged: number; skip: number; error: number };
+  /** Students in the class who aren't in the file (they're left as they are). */
+  notInFile: number;
+  /** Identifies this exact review; saving refuses if the data changed since. */
+  fingerprint: string;
+  canSave: boolean;
+  needsOverwriteConfirm: boolean;
+}
+
+export interface ImportResult {
+  importId: number | null;
+  created: number;
+  updated: number;
+  unchanged: number;
+  title: string;
 }
