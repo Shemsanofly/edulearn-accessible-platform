@@ -9,7 +9,7 @@ and phones.
 | **Frontend** | React 19 · Vite · TypeScript · TanStack Query · React Router |
 | **Backend** | Node.js · Express 5 · TypeScript · zod validation · JWT sessions in httpOnly cookies |
 | **Database** | PostgreSQL 14+ (plain SQL migrations) |
-| **Tests** | Vitest + Supertest integration tests against a real database (64 tests) |
+| **Tests** | Vitest + Supertest integration tests against a real database (79 tests) |
 
 > The whole application is TypeScript. `legacy/` holds the original HTML prototype for reference only;
 > `.gitattributes` excludes it from GitHub's language statistics.
@@ -51,8 +51,47 @@ of each token is stored. Administrators can still create accounts directly with 
 
 ### Teachers (limited to their own classes and subjects)
 Dashboard, my classes, attendance register (keyboard shortcuts P/L/A/E), gradebook, exam mark entry, assignments with
-file attachments, timetable, class announcements, messages with parents, student profiles, class reports.
+file attachments, timetable, class announcements, messages with parents, student profiles, class reports, and
+**Excel templates, import and export** for marks and attendance (see the [teacher guide](#teacher-guide-excel-templates)).
 Teachers cannot see finances, create accounts or change school settings.
+
+### Teacher guide: Excel templates
+Use Excel when it's easier to fill in marks or a register offline. The **Gradebook** (open a course) and **Attendance**
+pages each have three buttons:
+
+| Button | What it does |
+|---|---|
+| **Template** | Downloads an `.xlsx` file for one assessment (choose the term and assessment) or one register date. It lists your class with admission numbers and names, and fills in anything already saved. |
+| **Import** | Uploads the completed template, shows a review, and saves only when you confirm. |
+| **Export** | Downloads a read-only copy: the whole gradebook for the course, or attendance for a date range. |
+
+**Filling in marks**
+- Type a mark from 0 to the maximum shown in the column heading. **0 is a mark**; a blank cell means "no change" and
+  never erases or zeroes a saved mark.
+- If a student missed the assessment or was excused, choose **ABSENT** or **EXEMPT** in the next column instead of a
+  mark. (On screen you can type `ABS` or `EX` in a gradebook cell.) Absent and exempt don't count towards averages.
+- The comment column is optional.
+
+**Filling in attendance:** choose Present, Absent, Late or Excused for each student. Blank keeps what is saved.
+Notes are optional.
+
+**Don't** change admission numbers or names, add students, or copy rows between templates. Students are matched by
+admission number and every file is tied to its class and assessment (or date), so a template for one class can't be
+uploaded to another.
+
+**Importing**
+1. Click **Import**, choose the same assessment (or date) and pick your file, then **Check file**.
+2. The review shows how many records are new, will change or are unchanged, and every problem with its Excel row,
+   student and column. Fix problems in Excel and upload again: nothing is saved while any remain. **Download error
+   report** gives you the list as a spreadsheet.
+3. If the file would replace saved values, tick the box to confirm, then **Save import**.
+
+Saving re-checks everything. If someone changed the same marks after your review, you'll be shown an updated review
+instead. An import is saved completely or not at all. Uploading the same file twice changes nothing the second time.
+Each import is recorded (who, when, what changed) and appears in the audit log.
+
+Imported marks follow the normal process: exam results still reach parents only when the office publishes them.
+Imported absences notify parents exactly like the on-screen register. Small corrections are still quickest on screen.
 
 ### Parents (designed for phones)
 Switch between children; results and printable **report cards**, progress charts, attendance and late/absence
@@ -182,7 +221,7 @@ In Docker: `docker compose exec app node server/dist/db/cli.js deactivate-demo [
 ```
 ├── shared/types.ts            # API contract shared by server and client
 ├── server/
-│   ├── migrations/            # 001_init.sql … 003_invitations.sql (applied automatically on start)
+│   ├── migrations/            # 001_init.sql … 004_imports.sql (applied automatically on start)
 │   ├── src/routes/            # auth, students, teachers, parents, academics, attendance, assessments,
 │   │                          # exams, fees, reports, communication, invitations, platform (settings, audit…)
 │   ├── src/lib/               # access rules, audit, notifications, grading, phone numbers, settings
@@ -203,11 +242,12 @@ Core: `users`, `students`, `teachers`, `guardians` (parent ↔ student, many-to-
 `grading_scales`, `grade_bands`, `fee_structures`, `invoices`, `payments` (numbered receipts), `announcements`,
 `events`, `messages`, `notifications`, `audit_logs`, `password_resets`, `user_photos`, `assessment_files`,
 `school_settings`, `school_logo`, `contact_requests`, `invitations` (hashed one-time tokens, role and details fixed by
-the administrator).
+the administrator), `data_imports` (each Excel import: who, when, counts and the before/after of every changed record).
+A grade is either a score or a status (`absent` / `exempt`).
 
-Add a schema change as a new numbered file (e.g. `server/migrations/004_library.sql`); it runs on the next start.
-Upgrading an existing installation only needs a restart: `003_invitations.sql` adds the `invitations` table and changes
-no existing rows.
+Add a schema change as a new numbered file (e.g. `server/migrations/005_library.sql`); it runs on the next start.
+Upgrading an existing installation only needs a restart: `003_invitations.sql` adds the `invitations` table and
+`004_imports.sql` adds grade statuses and the `data_imports` table. Neither changes existing rows.
 
 ## Fonts, icons and images
 

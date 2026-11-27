@@ -14,6 +14,7 @@ import { communicationRouter } from './routes/communication.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { examsRouter } from './routes/exams.js';
 import { feesRouter } from './routes/fees.js';
+import { importsRouter } from './routes/imports.js';
 import { invitationsRouter } from './routes/invitations.js';
 import { parentsRouter } from './routes/parents.js';
 import { platformRouter, publicRouter } from './routes/platform.js';
@@ -50,6 +51,7 @@ export function createApp() {
   api.use('/', assignmentsRouter);
   api.use('/assessments', assessmentsRouter);
   api.use('/gradebook', gradebookRouter);
+  api.use('/imports', importsRouter);
   api.use('/fees', feesRouter);
   api.use('/', examsRouter);
   api.use('/reports', reportsRouter);

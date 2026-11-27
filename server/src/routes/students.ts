@@ -189,7 +189,7 @@ export async function buildOverview(studentId: number): Promise<StudentOverview>
     ),
     query<StudentGrade>(
       `SELECT a.id AS assessment_id, a.title, a.type, sub.name AS subject_name, sub.color, a.due_date,
-              g.score, a.max_score, ROUND(g.score / a.max_score * 100, 1) AS percent, g.feedback
+              g.score, g.status, a.max_score, ROUND(g.score / a.max_score * 100, 1) AS percent, g.feedback
          FROM students st
          JOIN class_subjects cs ON cs.class_id = st.class_id
          JOIN subjects sub ON sub.id = cs.subject_id

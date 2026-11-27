@@ -58,8 +58,36 @@ async function upload<T>(method: 'PUT' | 'POST', path: string, body: Blob, conte
   return data as T;
 }
 
+/** Download a file from the API (Excel templates and exports) and hand it to the browser. */
+async function download(path: string, params?: Params) {
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, params), { credentials: 'same-origin' });
+  } catch {
+    throw new ApiError(0, "Can't reach the server. Check your connection and try again.");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) onUnauthorized?.();
+    throw new ApiError(res.status, data.error ?? `Download failed (${res.status})`, data.details);
+  }
+  const blob = await res.blob();
+  const header = res.headers.get('content-disposition') ?? '';
+  const name = /filename\*=UTF-8''([^;]+)/.exec(header)?.[1] ?? /filename="([^"]+)"/.exec(header)?.[1] ?? 'download.xlsx';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = decodeURIComponent(name);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return a.download;
+}
+
 export const api = {
   upload,
+  download,
   get: <T>(path: string, params?: Params) => request<T>('GET', path, undefined, params),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body ?? {}),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body ?? {}),

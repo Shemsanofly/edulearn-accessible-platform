@@ -32,7 +32,7 @@ const M = {
     guardian: 'Parent / guardian', guardians: 'Parents / guardians', message: 'Message {name}', record: 'Student record',
     overview: 'Overview', reportCards: 'Report cards',
     overall: 'Overall average', gradeMarked: 'Grade {grade} · {n} marked', absentLate: '{absent} absent · {late} late', dueSoon: 'Due soon',
-    assignmentsTests: 'Assignments & tests', feeBalance: 'Fee balance', outstanding: 'Outstanding', allPaid: 'All paid',
+    assignmentsTests: 'Assignments & tests', gradeAbsent: 'Absent', gradeExempt: 'Exempt', feeBalance: 'Fee balance', outstanding: 'Outstanding', allPaid: 'All paid',
     daysRecorded: 'Days recorded', thisTerm: 'This term', subjectAverages: 'Subject averages', acrossMarked: 'Average across all marked work',
     allGrades: 'All grades', noSubjects: 'No subjects yet', noSubjectsHint: 'Subjects appear once the student is placed in a class.',
     nothingDue: 'Nothing due', nothingDueHint: 'No upcoming assignments or tests.', outOf: 'out of {n}', subjectAverage: '{subject} average',
@@ -57,7 +57,7 @@ const M = {
     guardian: 'Mzazi / mlezi', guardians: 'Wazazi / walezi', message: 'Mtumie {name} ujumbe', record: 'Kumbukumbu za mwanafunzi',
     overview: 'Muhtasari', reportCards: 'Ripoti za matokeo',
     overall: 'Wastani wa jumla', gradeMarked: 'Daraja {grade} · kazi {n} zimesahihishwa', absentLate: 'Hayupo {absent} · amechelewa {late}', dueSoon: 'Zinakaribia',
-    assignmentsTests: 'Kazi na majaribio', feeBalance: 'Salio la ada', outstanding: 'Linadaiwa', allPaid: 'Imelipwa yote',
+    assignmentsTests: 'Kazi na majaribio', gradeAbsent: 'Hakuwepo', gradeExempt: 'Amesamehewa', feeBalance: 'Salio la ada', outstanding: 'Linadaiwa', allPaid: 'Imelipwa yote',
     daysRecorded: 'Siku zilizorekodiwa', thisTerm: 'Muhula huu', subjectAverages: 'Wastani kwa somo', acrossMarked: 'Wastani wa kazi zote zilizosahihishwa',
     allGrades: 'Alama zote', noSubjects: 'Bado hakuna masomo', noSubjectsHint: 'Masomo yataonekana mwanafunzi akipangiwa darasa.',
     nothingDue: 'Hakuna kazi inayodaiwa', nothingDueHint: 'Hakuna kazi au majaribio yanayokuja.', outOf: 'kati ya {n}', subjectAverage: 'Wastani wa {subject}',
@@ -352,8 +352,8 @@ function GradesTab({ data }: { data: StudentOverview }) {
                   <td><span className="row" style={{ gap: 8 }}><span className="color-dot" style={{ background: g.color }} aria-hidden />{g.subjectName}</span></td>
                   <td>{typeLabel(g.type, t)}</td>
                   <td className="num">{formatDate(g.dueDate)}</td>
-                  <td className="num">{g.score ?? '—'} / {g.maxScore}</td>
-                  <td><Badge tone={gradeTone(g.percent)}>{percent(g.percent)} · {letterGrade(g.percent)}</Badge></td>
+                  <td className="num">{g.status ? <span className="muted">{t(g.status === 'absent' ? 'gradeAbsent' : 'gradeExempt')}</span> : <>{g.score ?? '—'} / {g.maxScore}</>}</td>
+                  <td>{g.status ? <span className="subtle">—</span> : <Badge tone={gradeTone(g.percent)}>{percent(g.percent)} · {letterGrade(g.percent)}</Badge>}</td>
                   <td className="small muted" style={{ maxWidth: 320 }}>{g.feedback ?? '—'}</td>
                 </tr>
               ))}

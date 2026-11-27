@@ -1,10 +1,11 @@
 import express, { Router } from 'express';
 import { z } from 'zod';
-import type { Assessment, AttachmentInfo, Course, Gradebook, GradebookRow, StudentAssignment } from '../../../shared/types.js';
+import type { Assessment, AttachmentInfo, Course, Gradebook, GradebookRow, GradeStatus, StudentAssignment } from '../../../shared/types.js';
 import { query, queryOne, transaction } from '../db/pool.js';
 import { assertCanManageCourse, assertCanViewCourse, assertCanViewStudent, canViewStudent } from '../lib/access.js';
 import { audit } from '../lib/audit.js';
 import { notifyWhere } from '../lib/notify.js';
+import { saveGrades, scoreProblem } from '../lib/records.js';
 import { badRequest, forbidden, intParam, notFound, parse, provided } from '../lib/http.js';
 import { ASSESSMENT_SELECT, COURSE_SELECT } from '../lib/sql.js';
 import { id, isoDate, optionalText } from '../lib/validators.js';
@@ -115,7 +116,7 @@ assessmentsRouter.delete('/:id', async (req, res) => {
   res.status(204).end();
 });
 
-/** Save many scores at once. A null score clears that student's grade. */
+/** Save many scores at once. A null score with no status clears that student's grade. */
 assessmentsRouter.put('/:id/grades', async (req, res) => {
   const assessmentId = intParam(req.params.id);
   const { courseId, maxScore } = await courseOf(assessmentId);
@@ -125,14 +126,18 @@ assessmentsRouter.put('/:id/grades', async (req, res) => {
     z.object({
       grades: z.array(z.object({
         studentId: id,
-        score: z.number().min(0, "Scores can't be negative").nullable(),
+        score: z.number().nullable(),
+        status: z.enum(['absent', 'exempt']).nullish(),
         feedback: z.string().trim().max(1000).nullish(),
       })).max(300),
     }),
     req.body,
   );
-  const over = grades.find((g) => g.score !== null && g.score > maxScore);
-  if (over) throw badRequest(`Scores can't be higher than the maximum of ${maxScore}`);
+  for (const g of grades) {
+    if (g.score !== null && g.status) throw badRequest('A grade is either a mark or absent/exempt, not both');
+    const problem = g.score === null ? null : scoreProblem(g.score, maxScore);
+    if (problem) throw badRequest(problem);
+  }
 
   await transaction(async (db) => {
     const members = await query<{ userId: number }>(
@@ -142,19 +147,9 @@ assessmentsRouter.put('/:id/grades', async (req, res) => {
     );
     const allowed = new Set(members.map((m) => m.userId));
     if (grades.some((g) => !allowed.has(g.studentId))) throw badRequest('One of the students is not in this class');
-    for (const g of grades) {
-      if (g.score === null) {
-        await query('DELETE FROM grades WHERE assessment_id = $1 AND student_id = $2', [assessmentId, g.studentId], db);
-      } else {
-        await query(
-          `INSERT INTO grades (assessment_id, student_id, score, feedback, graded_by) VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (assessment_id, student_id) DO UPDATE
-             SET score = EXCLUDED.score, feedback = EXCLUDED.feedback, graded_by = EXCLUDED.graded_by, graded_at = now()`,
-          [assessmentId, g.studentId, g.score, g.feedback || null, user.id],
-          db,
-        );
-      }
-    }
+    await saveGrades(db, assessmentId, user.id, grades.map((g) => ({
+      studentId: g.studentId, score: g.score, status: g.status ?? null, feedback: g.feedback || null,
+    })));
   });
   res.json(await loadAssessment(assessmentId));
 });
@@ -173,28 +168,31 @@ gradebookRouter.get('/:courseId', async (req, res) => {
         WHERE s.class_id = $1 ORDER BY u.last_name, u.first_name`,
       [course.classId],
     ),
-    query<{ assessmentId: number; studentId: number; score: number }>(
-      'SELECT g.assessment_id, g.student_id, g.score FROM grades g JOIN assessments a ON a.id = g.assessment_id WHERE a.class_subject_id = $1',
+    query<{ assessmentId: number; studentId: number; score: number | null; status: GradeStatus | null }>(
+      'SELECT g.assessment_id, g.student_id, g.score, g.status FROM grades g JOIN assessments a ON a.id = g.assessment_id WHERE a.class_subject_id = $1',
       [courseId],
     ),
   ]);
   const maxById = new Map(assessments.map((a) => [a.id, a.maxScore]));
-  const byStudent = new Map<number, Map<number, number>>();
+  const byStudent = new Map<number, Map<number, { score: number | null; status: GradeStatus | null }>>();
   for (const g of grades) {
     if (!byStudent.has(g.studentId)) byStudent.set(g.studentId, new Map());
-    byStudent.get(g.studentId)!.set(g.assessmentId, g.score);
+    byStudent.get(g.studentId)!.set(g.assessmentId, g);
   }
   const rows: GradebookRow[] = students.map((s) => {
-    const mine = byStudent.get(s.id) ?? new Map<number, number>();
+    const mine = byStudent.get(s.id) ?? new Map();
     const scores: Record<number, number | null> = {};
+    const statuses: Record<number, GradeStatus> = {};
     const percents: number[] = [];
     for (const a of assessments) {
-      const score = mine.get(a.id) ?? null;
-      scores[a.id] = score;
-      if (score !== null) percents.push((score / maxById.get(a.id)!) * 100);
+      const g = mine.get(a.id);
+      scores[a.id] = g?.score ?? null;
+      if (g?.status) statuses[a.id] = g.status;
+      // Absent and exempt grades have no score, so they don't count towards the average.
+      if (g?.score != null) percents.push((g.score / maxById.get(a.id)!) * 100);
     }
     const averagePercent = percents.length ? Math.round((percents.reduce((x, y) => x + y, 0) / percents.length) * 10) / 10 : null;
-    return { ...s, scores, averagePercent };
+    return { ...s, scores, statuses, averagePercent };
   });
   const gradebook: Gradebook = { course, assessments, rows };
   res.json(gradebook);

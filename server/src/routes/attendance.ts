@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { AttendanceRegister, RegisterEntry } from '../../../shared/types.js';
 import { query, queryOne, transaction } from '../db/pool.js';
 import { assertCanTakeAttendance } from '../lib/access.js';
-import { guardiansOf, notifyUsers } from '../lib/notify.js';
+import { notifyAttendance, saveAttendance } from '../lib/records.js';
 import { badRequest, intParam, parse } from '../lib/http.js';
 import { id, isoDate } from '../lib/validators.js';
 import { me, requireRole } from '../middleware/auth.js';
@@ -57,39 +57,9 @@ attendanceRouter.put('/register', async (req, res) => {
     const allowed = new Set(members.map((m) => m.userId));
     const stray = body.entries.find((e) => !allowed.has(e.studentId));
     if (stray) throw badRequest('One of the students is not in this class');
-    const before = await query<{ studentId: number; status: string }>(
-      'SELECT student_id, status FROM attendance WHERE date = $1 AND student_id = ANY($2)',
-      [body.date, body.entries.map((e) => e.studentId)],
-      db,
-    );
-    const previous = new Map(before.map((b) => [b.studentId, b.status]));
-    for (const e of body.entries) {
-      await query(
-        `INSERT INTO attendance (student_id, class_id, date, status, note, recorded_by)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (student_id, date) DO UPDATE
-           SET status = EXCLUDED.status, note = EXCLUDED.note, class_id = EXCLUDED.class_id,
-               recorded_by = EXCLUDED.recorded_by, recorded_at = now()`,
-        [e.studentId, body.classId, body.date, e.status, e.note || null, user.id],
-        db,
-      );
-    }
-    // Only newly absent or late students trigger a message, so re-saving doesn't spam parents.
-    return body.entries.filter((e) => (e.status === 'absent' || e.status === 'late') && previous.get(e.studentId) !== e.status);
+    return saveAttendance(db, body.classId, body.date, user.id, body.entries.map((e) => ({ ...e, note: e.note || null })));
   });
-  if (flagged.length) {
-    const parents = await guardiansOf(flagged.map((f) => f.studentId));
-    const names = await query<{ id: number; firstName: string }>('SELECT id, first_name FROM users WHERE id = ANY($1)', [flagged.map((f) => f.studentId)]);
-    for (const f of flagged) {
-      const name = names.find((n) => n.id === f.studentId)?.firstName ?? 'Your child';
-      await notifyUsers(parents.get(f.studentId) ?? [], {
-        type: 'attendance',
-        title: f.status === 'absent' ? `${name} was marked absent` : `${name} arrived late`,
-        body: `${body.date}${f.note ? ` · ${f.note}` : ''}`,
-        link: `/students/${f.studentId}?tab=attendance`,
-      });
-    }
-  }
+  await notifyAttendance(body.date, flagged);
   res.json(await loadRegister(body.classId, body.date));
 });
 

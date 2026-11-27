@@ -3,6 +3,7 @@ import { CheckCheck, ChevronLeft, ChevronRight, ClipboardCheck, History, Keyboar
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { AttendanceRegister, AttendanceStatus, ClassListItem } from '../../../shared/types';
+import { ExcelTools } from '../components/ExcelTools';
 import { useToast } from '../components/Toast';
 import {
   Alert, Avatar, Badge, Button, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, ProgressBar,
@@ -90,12 +91,15 @@ export function AttendancePage() {
   const { t: c } = useI18n();
   const [params, setParams] = useSearchParams();
   const [tab, setTab] = useState<'register' | 'history'>('register');
+  const [date, setDate] = useState(todayIso());
   const classId = params.get('classId') ? Number(params.get('classId')) : null;
 
   const classes = useQuery({
     queryKey: ['classes', user.role === 'teacher' ? 'mine' : 'all'],
     queryFn: () => api.get<ClassListItem[]>('/classes', user.role === 'teacher' ? { mine: true } : undefined),
   });
+
+  const selected = classes.data?.find((cl) => cl.id === classId);
 
   // Default to the teacher's homeroom (or the first class).
   useEffect(() => {
@@ -122,13 +126,20 @@ export function AttendancePage() {
         title={c('attendance')}
         description={t('description')}
         actions={
-          <Field label={c('class')} className="w-full">
-            <Select value={classId ?? ''} onChange={(e) => setParams({ classId: e.target.value })} style={{ minWidth: 200 }}>
-              {classes.data.map((cl) => (
-                <option key={cl.id} value={cl.id}>{cl.name}{cl.homeroomTeacherId === user.id ? t('myClass') : ''}</option>
-              ))}
-            </Select>
-          </Field>
+          <>
+            <Field label={c('class')} className="w-full">
+              <Select value={classId ?? ''} onChange={(e) => setParams({ classId: e.target.value })} style={{ minWidth: 200 }}>
+                {classes.data.map((cl) => (
+                  <option key={cl.id} value={cl.id}>{cl.name}{cl.homeroomTeacherId === user.id ? t('myClass') : ''}</option>
+                ))}
+              </Select>
+            </Field>
+            {selected && (
+              <div className="row row-wrap" style={{ gap: 8, alignSelf: 'flex-end' }}>
+                <ExcelTools target={{ kind: 'attendance', classId: selected.id, className: selected.name, date }} />
+              </div>
+            )}
+          </>
         }
       />
       <Tabs
@@ -140,18 +151,17 @@ export function AttendancePage() {
           { id: 'history', label: <><History size={16} aria-hidden /> {t('history')}</> },
         ]}
       />
-      {classId && (tab === 'register' ? <Register key={classId} classId={classId} /> : <HistoryView classId={classId} />)}
+      {classId && (tab === 'register' ? <Register key={classId} classId={classId} date={date} setDate={setDate} /> : <HistoryView classId={classId} />)}
     </>
   );
 }
 
 // ---------------------------------------------------------------- Register
-function Register({ classId }: { classId: number }) {
+function Register({ classId, date, setDate }: { classId: number; date: string; setDate: (d: string) => void }) {
   const t = useT(M);
   const { t: c } = useI18n();
   const qc = useQueryClient();
   const toast = useToast();
-  const [date, setDate] = useState(todayIso());
   const [drafts, setDrafts] = useState<Record<number, Draft>>({});
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 

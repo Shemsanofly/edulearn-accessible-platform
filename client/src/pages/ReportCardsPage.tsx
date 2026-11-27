@@ -25,7 +25,7 @@ const M = {
     heading: 'Student Report Card', headingSw: 'Ripoti ya Maendeleo ya Mwanafunzi', back: 'Back', print: 'Print / save as PDF',
     exam: 'Examination', term: 'Term', student: 'Student', admission: 'Admission no.', class: 'Class',
     subject: 'Subject', teacher: 'Teacher', marks: 'Marks', percentCol: '%', remark: 'Remark', classAvg: 'Class avg.',
-    total: 'Total', overall: 'Overall', notMarked: 'Not marked', attendance: 'Attendance this term',
+    total: 'Total', overall: 'Overall', notMarked: 'Not marked', absent: 'Absent', exempt: 'Exempt', attendance: 'Attendance this term',
     attendanceLine: '{rate} attendance · {present} present · {late} late · {absent} absent · {excused} excused',
     key: 'Grading key', classTeacherRemark: 'Class teacher’s remark', noRemark: 'No remark yet.',
     remarkPlaceholder: 'Write a short comment about the student’s progress…', saveRemark: 'Save remark', remarkSaved: 'Remark saved',
@@ -40,7 +40,7 @@ const M = {
     heading: 'Ripoti ya Maendeleo ya Mwanafunzi', headingSw: 'Student Report Card', back: 'Rudi', print: 'Chapisha / hifadhi PDF',
     exam: 'Mtihani', term: 'Muhula', student: 'Mwanafunzi', admission: 'Na. ya usajili', class: 'Darasa',
     subject: 'Somo', teacher: 'Mwalimu', marks: 'Alama', percentCol: '%', remark: 'Maoni', classAvg: 'Wastani wa darasa',
-    total: 'Jumla', overall: 'Kwa ujumla', notMarked: 'Haijasahihishwa', attendance: 'Mahudhurio ya muhula huu',
+    total: 'Jumla', overall: 'Kwa ujumla', notMarked: 'Haijasahihishwa', absent: 'Hakuwepo', exempt: 'Amesamehewa', attendance: 'Mahudhurio ya muhula huu',
     attendanceLine: 'Mahudhurio {rate} · alikuwepo {present} · alichelewa {late} · hakuwepo {absent} · ruhusa {excused}',
     key: 'Ufunguo wa madaraja', classTeacherRemark: 'Maoni ya mwalimu wa darasa', noRemark: 'Bado hakuna maoni.',
     remarkPlaceholder: 'Andika maoni mafupi kuhusu maendeleo ya mwanafunzi…', saveRemark: 'Hifadhi maoni', remarkSaved: 'Maoni yamehifadhiwa',
@@ -217,7 +217,7 @@ export function ReportCardPage() {
                 <tr key={x.subjectName}>
                   <td style={{ fontWeight: 600 }}>{x.subjectName}</td>
                   <td>{x.teacherName ?? '—'}</td>
-                  <td style={{ textAlign: 'right' }}>{x.marks === null ? <span className="muted">{t('notMarked')}</span> : `${x.marks} / ${x.maxMarks}`}</td>
+                  <td style={{ textAlign: 'right' }}>{x.marks === null ? <span className="muted">{x.status ? t(x.status) : t('notMarked')}</span> : `${x.marks} / ${x.maxMarks}`}</td>
                   <td style={{ textAlign: 'right' }}>{percent(x.percent, 1)}</td>
                   <td style={{ fontWeight: 700 }}>{x.grade ?? '—'}</td>
                   <td>{x.remark ?? '—'}</td>

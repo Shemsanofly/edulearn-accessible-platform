@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import type {
+  GradeStatus,
   AcademicYear, AttendanceSummary, ClassPerformance, Exam, ExamDetail, ExamPaper, GradeBand, GradingScale,
   ReportCard, ReportCardSubject, ReportCardSummary, StudentListItem,
 } from '../../../shared/types.js';
@@ -363,7 +364,7 @@ async function classResults(examId: number, classId: number, bands: GradeBand[])
       `SELECT g.student_id, sub.name AS subject_name, sub.color, g.score, a.max_score
          FROM assessments a JOIN class_subjects cs ON cs.id = a.class_subject_id JOIN subjects sub ON sub.id = cs.subject_id
          JOIN grades g ON g.assessment_id = a.id
-        WHERE a.exam_id = $1 AND cs.class_id = $2`,
+        WHERE a.exam_id = $1 AND cs.class_id = $2 AND g.score IS NOT NULL`,
       [examId, classId],
     ),
     query<{ subjectName: string; color: string }>(
@@ -441,9 +442,9 @@ async function buildReportCard(examId: number, studentId: number): Promise<Omit<
   if (!student.classId || !exam.classes.some((c) => c.id === student.classId)) throw notFound('Report card for this student');
   const { bands } = await examScale(exam);
   const results = await classResults(examId, student.classId, bands);
-  const papers = await query<{ subjectName: string; teacherName: string | null; maxScore: number; score: number | null }>(
+  const papers = await query<{ subjectName: string; teacherName: string | null; maxScore: number; score: number | null; status: GradeStatus | null }>(
     `SELECT sub.name AS subject_name, CASE WHEN t.id IS NULL THEN NULL ELSE t.first_name || ' ' || t.last_name END AS teacher_name,
-            a.max_score, g.score
+            a.max_score, g.score, g.status
        FROM assessments a JOIN class_subjects cs ON cs.id = a.class_subject_id JOIN subjects sub ON sub.id = cs.subject_id
        LEFT JOIN users t ON t.id = cs.teacher_id
        LEFT JOIN grades g ON g.assessment_id = a.id AND g.student_id = $3
@@ -454,7 +455,7 @@ async function buildReportCard(examId: number, studentId: number): Promise<Omit<
     const percent = p.score === null ? null : Math.round((p.score / p.maxScore) * 1000) / 10;
     const band = bandFor(percent, bands);
     return {
-      subjectName: p.subjectName, teacherName: p.teacherName, marks: p.score, maxMarks: p.maxScore, percent,
+      subjectName: p.subjectName, teacherName: p.teacherName, marks: p.score, status: p.status ?? null, maxMarks: p.maxScore, percent,
       grade: band?.grade ?? null, points: band?.points ?? null, remark: band?.remark ?? null,
       classAverage: results.subjectStats.find((s) => s.subjectName === p.subjectName)?.averagePercent ?? null,
     };
