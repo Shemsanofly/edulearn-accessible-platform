@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, CalendarClock, Clock, MapPin, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -159,6 +160,7 @@ export function TimetablePage() {
           </>
         }
       />
+      {(isAdmin || user.role === 'teacher') && <RecordExcelPanel areas={[{ resource: 'timetable', label: 'Timetable', canEdit: isAdmin }]} />}
 
       <Card className="mb-3">
         <div className="toolbar" style={{ borderBottom: 0 }}>

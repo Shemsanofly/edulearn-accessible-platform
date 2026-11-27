@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, ChevronLeft, ChevronRight, MapPin, Pencil, Plus, Trash } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -133,6 +134,7 @@ export function CalendarPage() {
         description={t('description')}
         actions={isAdmin && <Button variant="primary" icon={<Plus size={18} />} onClick={() => setEditor({ event: null })}>{t('newEvent')}</Button>}
       />
+      {(isAdmin || user.role === 'teacher') && <RecordExcelPanel areas={[{ resource: 'events', label: 'Calendar events', canEdit: isAdmin }]} />}
       <div className="grid grid-main">
         <Card>
           <div className="card-header">

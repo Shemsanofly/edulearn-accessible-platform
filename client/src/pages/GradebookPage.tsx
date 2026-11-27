@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Award, BookOpen, Eye, FileUp, NotebookPen, Paperclip, Pencil, Plus, Save, Trash2, Undo2, Users, X,
@@ -312,6 +313,7 @@ function CourseGradebook({ courseId }: { courseId: number }) {
           </>
         }
       />
+      <RecordExcelPanel areas={[{ resource: 'assessments', label: 'Assessments and assignments', scope: { courseId }, canEdit: !readOnly }]} />
 
       {readOnly && (
         <div className="mb-3">

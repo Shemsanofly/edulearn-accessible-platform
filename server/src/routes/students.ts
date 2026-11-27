@@ -16,7 +16,7 @@ import { me, requireRole } from '../middleware/auth.js';
 
 export const studentsRouter = Router();
 
-const studentSchema = z.object({
+export const studentSchema = z.object({
   firstName: name,
   lastName: name,
   email,

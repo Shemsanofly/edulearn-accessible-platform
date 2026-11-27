@@ -55,6 +55,52 @@ file attachments, timetable, class announcements, messages with parents, student
 **Excel templates, import and export** for marks and attendance (see the [teacher guide](#teacher-guide-excel-templates)).
 Teachers cannot see finances, create accounts or change school settings.
 
+### Excel across school records
+
+Management pages have an **Excel** toolbar with **Template**, **Import**, and **Export**. Where a page manages
+several datasets, choose the dataset in the toolbar first (for example, parent accounts or parent-child links).
+
+| Area | Datasets |
+|---|---|
+| People | Students, teachers, parent accounts, parent-child links, invitations |
+| Classes and academic setup | Classes, subject/teacher assignments, subjects, terms, academic years, grading scales |
+| Teaching | Timetable, assessments/assignments, exams, report-card remarks |
+| Finance | Fee structures, invoices, payments |
+| School communication | Announcements, calendar events |
+
+The existing marks and attendance tools remain on their respective pages. Personal profile settings, branding,
+individual messages, and file attachments continue to use their dedicated forms.
+
+1. **Template** downloads 100 blank entry rows, column instructions, and reference sheets listing the IDs of linked
+   records you may use. Insert additional rows if needed, up to 1,000. Import referenced records first: for example,
+   create classes before students, then parents before parent-child links.
+2. Fill required columns marked `*`. Use `YYYY-MM-DD` dates, `HH:MM` times, `TRUE`/`FALSE`, and `|` between list items.
+   Nested grading bands and invitation access details use JSON; the template includes examples.
+3. Keep **Record ID** to update an existing record. For a new record leave ID blank and provide a stable, unique
+   **Import key** (particularly for invoices, payments, assessments, timetable entries, exams, events and notices).
+   People, classes, subjects, years and terms can also match their existing unique email/code/name. Reuse the same
+   import key when uploading a corrected file; changing the key means a new record.
+4. **Import** checks every row and shows new, changed, unchanged and invalid records. Nothing is saved until you
+   confirm. Changes require overwrite confirmation. Blank cells preserve saved values; omitted rows are not deleted.
+   **Export** downloads all permitted records in that area (or the current class/course/exam where shown), including
+   IDs, so it can be edited and imported again. Search and pagination do not limit these exports.
+
+Permissions match the normal forms: administrators manage school records; teachers can import their assigned
+assessments, class announcements and class-teacher report remarks, and export their permitted working records.
+Parents and students cannot access management imports. Timetable clashes, class capacity, unique identifiers,
+linked records, grading bands, exam rules and payment balances are validated. Each batch saves atomically and is
+audited; a changed database requires a fresh review. Uploading an unchanged file again creates no duplicate records.
+Existing invoices and payments are read-only during import. Importing fee structures does not issue invoices or
+publish exam results automatically.
+
+New accounts return a **one-time credentials download** after saving. Existing passwords are never exported or
+changed by import. New invitations similarly return a one-time links download; bulk import does not send emails.
+Download these files before closing the result and share privately. Use the normal password reset or invitation
+resend action if the one-time file is lost. Import logs contain no passwords or invitation tokens.
+
+Migration `005_record_imports.sql` runs automatically on server startup and adds duplicate-upload tracking. After
+pulling dependency changes, run `npm ci` and restart `npm run dev` (or rebuild your deployment).
+
 ### Teacher guide: Excel templates
 Use Excel when it's easier to fill in marks or a register offline. The **Gradebook** (open a course) and **Attendance**
 pages each have three buttons:

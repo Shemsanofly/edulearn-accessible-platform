@@ -22,7 +22,7 @@ const adminOnly = requireRole('admin');
 // ---------------------------------------------------------------------------
 // Academic years
 // ---------------------------------------------------------------------------
-const yearSchema = z.object({
+export const yearSchema = z.object({
   name: z.string().trim().min(1, 'Required').max(40),
   startsOn: isoDate,
   endsOn: isoDate,
@@ -84,7 +84,7 @@ const bandSchema = z.object({
   points: z.coerce.number().min(0).max(100).nullish().transform((v) => v ?? null),
   remark: optionalText(60),
 });
-const scaleSchema = z.object({
+export const scaleSchema = z.object({
   name: z.string().trim().min(1, 'Required').max(60),
   description: optionalText(300),
   isDefault: z.boolean().default(false),
@@ -172,7 +172,7 @@ const EXAM_SELECT = `
     LEFT JOIN terms t ON t.id = e.term_id
     LEFT JOIN grading_scales gs ON gs.id = e.grading_scale_id`;
 
-const examSchema = z.object({
+export const examSchema = z.object({
   name: z.string().trim().min(2, 'Required').max(120),
   termId: id.nullish(),
   gradingScaleId: id.nullish(),
@@ -211,7 +211,7 @@ async function loadExam(examId: number) {
 }
 
 /** Make sure every course in the exam's classes has an exam paper (assessment). */
-async function syncPapers(db: Parameters<Parameters<typeof transaction>[0]>[0], examId: number, userId: number) {
+export async function syncPapers(db: Parameters<Parameters<typeof transaction>[0]>[0], examId: number, userId: number) {
   await query(
     `INSERT INTO assessments (class_subject_id, term_id, title, description, type, max_score, due_date, created_by, exam_id)
      SELECT cs.id, e.term_id, sub.name || ': ' || e.name, 'Examination paper', 'exam', e.max_marks, e.ends_on, $2, e.id

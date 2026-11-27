@@ -14,7 +14,7 @@ import { me, requireRole } from '../middleware/auth.js';
 export const assessmentsRouter = Router();
 assessmentsRouter.use(requireRole('admin', 'teacher'));
 
-const assessmentSchema = z.object({
+export const assessmentSchema = z.object({
   courseId: id,
   termId: id.nullish(),
   title: z.string().trim().min(1, 'Required').max(120),

@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { Ban, Check, Copy, MailPlus, RefreshCw, ShieldAlert, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -366,6 +367,7 @@ export function InvitationsPage() {
         description={t('desc')}
         actions={<Button variant="primary" icon={<MailPlus size={18} />} onClick={() => setParam('new', '1')}>{t('invite')}</Button>}
       />
+      <RecordExcelPanel areas={[{ resource: 'invitations', label: 'Invitations' }]} />
       <Card>
         <div className="toolbar">
           <SearchInput value={search} onChange={setSearch} placeholder={t('searchPh')} label={t('searchLabel')} />

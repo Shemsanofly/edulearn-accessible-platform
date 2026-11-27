@@ -938,7 +938,10 @@ export interface RegisterInput {
 // ---------------------------------------------------------------------------
 // Excel templates, import and export
 // ---------------------------------------------------------------------------
-export type ImportKind = 'marks' | 'attendance';
+export type RecordResource = 'students' | 'teachers' | 'parents' | 'guardians' | 'classes' | 'courses'
+  | 'subjects' | 'terms' | 'academic-years' | 'grading-scales' | 'timetable' | 'assessments'
+  | 'exams' | 'report-remarks' | 'fee-structures' | 'invoices' | 'payments' | 'announcements' | 'events' | 'invitations';
+export type ImportKind = 'marks' | 'attendance' | 'records';
 /** What saving would do to one row of the uploaded file. */
 export type ImportAction = 'create' | 'update' | 'unchanged' | 'skip' | 'error';
 
@@ -988,4 +991,7 @@ export interface ImportResult {
   updated: number;
   unchanged: number;
   title: string;
+  /** Only returned once for newly created accounts; never part of an ordinary export or audit log. */
+  credentials?: { email: string; temporaryPassword: string }[];
+  invitationLinks?: { email: string; link: string }[];
 }

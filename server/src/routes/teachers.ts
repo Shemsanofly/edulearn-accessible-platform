@@ -21,7 +21,7 @@ const TEACHER_SELECT = `
          ${PHOTO_URL} AS photo_url
     FROM teachers t JOIN users u ON u.id = t.user_id`;
 
-const teacherSchema = z.object({
+export const teacherSchema = z.object({
   firstName: name,
   lastName: name,
   email,

@@ -18,7 +18,7 @@ const BRAND = 'FF0E6672';
 const LOCKED_FILL = 'FFF3F1EC';
 
 export interface TemplateMeta {
-  kind: 'marks' | 'attendance';
+  kind: 'marks' | 'attendance' | 'records';
   version: number;
   sheetName: string;
   headerRow: number;
@@ -51,6 +51,7 @@ export interface SheetSpec {
   meta?: Omit<TemplateMeta, 'version' | 'sheetName' | 'headerRow' | 'columns' | 'generatedAt'>;
   /** Extra columns appended to the header row as plain values (exports). */
   footerNote?: string;
+  references?: { name: string; headers: string[]; rows: (string | number | null)[][] }[];
 }
 
 /** Build a workbook with a title, a details block, short instructions and a table. */
@@ -115,7 +116,7 @@ export async function buildWorkbook(spec: SheetSpec): Promise<Buffer> {
 
   if (spec.meta) {
     // Identifier and name columns are locked so they aren't changed by accident; the server checks them anyway.
-    await ws.protect('', { selectLockedCells: true, selectUnlockedCells: true, formatColumns: true, formatRows: true });
+    await ws.protect('', { selectLockedCells: true, selectUnlockedCells: true, formatColumns: true, formatRows: true, insertRows: true });
     const meta: TemplateMeta = {
       ...spec.meta, version: TEMPLATE_VERSION, sheetName: spec.sheetName, headerRow,
       columns: spec.columns.map((c) => c.key), generatedAt: new Date().toISOString(),
@@ -124,6 +125,14 @@ export async function buildWorkbook(spec: SheetSpec): Promise<Buffer> {
     hidden.getCell('A1').value = 'EduLearn template details. Do not edit.';
     hidden.getCell('A2').value = JSON.stringify(meta);
     hidden.getCell('A3').value = sign(meta);
+  }
+  for (const reference of spec.references ?? []) {
+    const sheet = wb.addWorksheet(reference.name);
+    sheet.addRow(reference.headers);
+    reference.rows.forEach((row) => sheet.addRow(row));
+    sheet.getRow(1).font = { bold: true };
+    reference.headers.forEach((_, i) => { sheet.getColumn(i + 1).width = 28; });
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
   }
   return Buffer.from(await wb.xlsx.writeBuffer());
 }

@@ -28,7 +28,7 @@ const PARENT_SELECT = `
 
 const childSchema = z.object({ studentId: id, relationship: z.string().trim().min(1).max(40).default('guardian') });
 
-const parentSchema = z.object({
+export const parentSchema = z.object({
   firstName: name,
   lastName: name,
   email,

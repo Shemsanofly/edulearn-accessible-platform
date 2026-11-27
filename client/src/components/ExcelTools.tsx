@@ -1,13 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2, Download, FileDown, FileSpreadsheet, FileUp, Info, RefreshCw, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
-import type { Assessment, ImportPreview, ImportPreviewRow, ImportResult, Term } from '../../../shared/types';
+import type { Assessment, ImportPreview, ImportPreviewRow, ImportResult, RecordResource, Term } from '../../../shared/types';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { downloadCsv } from '../lib/export';
-import { useT } from '../lib/i18n';
+import { useI18n, useT } from '../lib/i18n';
 import { Modal } from './Modal';
 import { useToast } from './Toast';
-import { Alert, Badge, Button, Field, Input, Select, StatCard, StatGroup } from './ui';
+import { Alert, Badge, Button, Card, Field, Input, Select, StatCard, StatGroup } from './ui';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -15,6 +15,11 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 const M = {
   en: {
     template: 'Template', import: 'Import', export: 'Export',
+    area: 'Excel data',
+    recordsHint: 'Enter records in the downloaded template. Use the reference sheets for linked IDs. Export contains existing records for review or editing.',
+    credentials: 'Download new account credentials', credentialsHint: 'Temporary passwords are shown once. Download this file before closing and share it privately.',
+    csvRecord: 'Record', csvIdentifier: 'Identifier',
+    inviteLinks: 'Download invitation links', inviteLinksHint: 'Download the links before closing and share them privately. Invitations have not been emailed.',
     templateTitle: 'Download a template', templateMarksDesc: 'An Excel file with this class’s students and any marks already saved.',
     templateAttDesc: 'An Excel file with this class’s students and any statuses already saved for the date.',
     term: 'Term', allTerms: 'All terms', assessment: 'Assessment', noAssessments: 'Add an assessment first, then download its template.',
@@ -41,6 +46,11 @@ const M = {
   },
   sw: {
     template: 'Kiolezo', import: 'Leta', export: 'Hamisha',
+    area: 'Taarifa za Excel',
+    recordsHint: 'Jaza taarifa katika kiolezo. Tumia vitambulisho kwenye karatasi za marejeo. Hamisha hupakua taarifa zilizopo kwa ukaguzi au kuhariri.',
+    credentials: 'Pakua taarifa za akaunti mpya', credentialsHint: 'Nenosiri la muda linaonyeshwa mara moja. Pakua faili kabla ya kufunga, kisha lishiriki kwa siri.',
+    csvRecord: 'Rekodi', csvIdentifier: 'Kitambulisho',
+    inviteLinks: 'Pakua viungo vya mwaliko', inviteLinksHint: 'Pakua viungo kabla ya kufunga na uvishiriki kwa siri. Mialiko haijatumwa kwa barua pepe.',
     templateTitle: 'Pakua kiolezo', templateMarksDesc: 'Faili la Excel lenye wanafunzi wa darasa hili na alama zilizokwisha hifadhiwa.',
     templateAttDesc: 'Faili la Excel lenye wanafunzi wa darasa hili na mahudhurio yaliyokwisha hifadhiwa kwa tarehe hiyo.',
     term: 'Muhula', allTerms: 'Mihula yote', assessment: 'Tathmini', noAssessments: 'Ongeza tathmini kwanza, kisha pakua kiolezo chake.',
@@ -70,7 +80,47 @@ type T = ReturnType<typeof useT<keyof typeof M.en>>;
 
 export type ExcelTarget =
   | { kind: 'marks'; courseId: number; label: string; assessments: Assessment[]; canEdit: boolean; defaultAssessmentId?: number | null }
-  | { kind: 'attendance'; classId: number; className: string; date: string };
+  | { kind: 'attendance'; classId: number; className: string; date: string }
+  | { kind: 'records'; resource: RecordResource; label: string; scope: Record<string, number>; canEdit: boolean };
+
+const endpoint = (target: ExcelTarget, step: string) => target.kind === 'records'
+  ? `/imports/records/${target.resource}/${step}` : `/imports/${target.kind}/${step}`;
+
+/** Reuses the same review/confirmation workflow for every managed record area. */
+export function RecordExcelTools({ resource, label, scope = {}, canEdit = true }: {
+  resource: RecordResource; label: string; scope?: Record<string, number>; canEdit?: boolean;
+}) {
+  return <ExcelTools target={{ kind: 'records', resource, label, scope, canEdit }} />;
+}
+
+export function RecordExcelPanel({ areas }: { areas: {
+  resource: RecordResource; label: string; scope?: Record<string, number>; canEdit?: boolean;
+}[] }) {
+  const [selected, setSelected] = useState('');
+  const { lang } = useI18n();
+  const t = useT(M);
+  const sw: Record<RecordResource, string> = {
+    students: 'Wanafunzi', teachers: 'Walimu', parents: 'Akaunti za wazazi', guardians: 'Uhusiano wa wazazi na watoto',
+    classes: 'Madarasa', courses: 'Masomo na walimu', subjects: 'Masomo', terms: 'Mihula',
+    'academic-years': 'Miaka ya masomo', 'grading-scales': 'Viwango vya madaraja', timetable: 'Ratiba',
+    assessments: 'Tathmini na kazi', exams: 'Mitihani', 'report-remarks': 'Maoni ya ripoti',
+    'fee-structures': 'Miundo ya ada', invoices: 'Ankara', payments: 'Malipo', announcements: 'Matangazo',
+    events: 'Matukio ya kalenda', invitations: 'Mialiko',
+  };
+  const area = areas.find(a => a.resource === selected) ?? areas[0];
+  if (!area) return null;
+  return <Card className="mb-3">
+    <div className="toolbar" style={{ flexWrap: 'wrap', borderBottom: 0 }}>
+      <span className="row bold" style={{ gap: 8 }}><FileSpreadsheet size={18} aria-hidden /> Excel</span>
+      {areas.length > 1 ? <Select aria-label={t('area')} value={area.resource} onChange={e => setSelected(e.target.value)} style={{ width: 'auto', maxWidth: '100%' }}>
+        {areas.map(a => <option key={a.resource} value={a.resource}>{lang === 'sw' ? sw[a.resource] : a.label}</option>)}
+      </Select> : <span className="small muted">{lang === 'sw' ? sw[area.resource] : area.label}</span>}
+      <div className="row row-wrap" style={{ gap: 8, marginLeft: 'auto' }}>
+        <RecordExcelTools key={`${area.resource}:${JSON.stringify(area.scope)}`} {...area} />
+      </div>
+    </div>
+  </Card>;
+}
 
 type Open = 'template' | 'import' | 'export' | null;
 
@@ -84,7 +134,7 @@ export function ExcelTools({ target }: { target: ExcelTarget }) {
   const exportNow = async () => {
     if (target.kind === 'attendance') return setOpen('export');
     try {
-      await api.download('/imports/marks/export', { courseId: target.courseId });
+      await api.download(endpoint(target, 'export'), target.kind === 'records' ? target.scope : { courseId: target.courseId });
       toast.success(t('exported'));
     } catch (err) {
       toast.error(err);
@@ -109,6 +159,7 @@ function ContextFields({ target, assessmentId, setAssessmentId, date, setDate, t
 }) {
   const terms = useQuery({ queryKey: ['terms'], queryFn: () => api.get<Term[]>('/terms'), enabled: target.kind === 'marks' });
   const [termId, setTermId] = useState<string>('');
+  if (target.kind === 'records') return <Alert tone="info">{target.label}: {t('recordsHint')}</Alert>;
   if (target.kind === 'attendance') {
     return (
       <Field label={t('date')}>
@@ -147,7 +198,7 @@ function useContextState(target: ExcelTarget) {
     : null;
   const [assessmentId, setAssessmentId] = useState<number | null>(initial);
   const [date, setDate] = useState(target.kind === 'attendance' ? target.date : todayIso());
-  const query = target.kind === 'marks' ? { assessmentId } : { classId: target.classId, date };
+  const query = target.kind === 'marks' ? { assessmentId } : target.kind === 'attendance' ? { classId: target.classId, date } : target.scope;
   const ready = target.kind === 'marks' ? assessmentId !== null : !!date;
   return { assessmentId, setAssessmentId, date, setDate, query, ready };
 }
@@ -160,7 +211,7 @@ function TemplateDialog({ target, onClose }: { target: ExcelTarget; onClose: () 
   const download = async () => {
     setBusy(true);
     try {
-      await api.download(`/imports/${target.kind}/template`, ctx.query);
+      await api.download(endpoint(target, 'template'), ctx.query);
       toast.success(t('downloaded'), t('downloadedHint'));
       onClose();
     } catch (err) {
@@ -174,7 +225,7 @@ function TemplateDialog({ target, onClose }: { target: ExcelTarget; onClose: () 
       open
       onClose={onClose}
       title={t('templateTitle')}
-      description={target.kind === 'marks' ? `${target.label} · ${t('templateMarksDesc')}` : `${target.className} · ${t('templateAttDesc')}`}
+      description={target.kind === 'marks' ? `${target.label} · ${t('templateMarksDesc')}` : target.kind === 'attendance' ? `${target.className} · ${t('templateAttDesc')}` : target.label}
       onSubmit={download}
       footer={<><Button onClick={onClose}>{t('cancel')}</Button><Button type="submit" variant="primary" icon={<Download size={17} />} loading={busy} disabled={!ctx.ready}>{t('download')}</Button></>}
     >
@@ -232,7 +283,7 @@ function ImportDialog({ target, onClose }: { target: ExcelTarget; onClose: () =>
   const [result, setResult] = useState<ImportResult | null>(null);
 
   const url = (step: 'preview' | 'commit', extra: Record<string, string> = {}) =>
-    `/imports/${target.kind}/${step}?${new URLSearchParams({ ...Object.fromEntries(Object.entries(ctx.query).map(([k, v]) => [k, String(v)])), ...extra })}`;
+    `${endpoint(target, step)}?${new URLSearchParams({ ...Object.fromEntries(Object.entries(ctx.query).map(([k, v]) => [k, String(v)])), ...extra })}`;
 
   const check = async (refresh = false) => {
     if (!file) { setFileError(t('chooseFile')); return; }
@@ -287,6 +338,12 @@ function ImportDialog({ target, onClose }: { target: ExcelTarget; onClose: () =>
         <div role="status" className="stack">
           <span className="empty-icon" style={{ margin: 0, background: 'var(--success-soft)', color: 'var(--success)' }} aria-hidden><CheckCircle2 size={24} /></span>
           <p className="bold">{result.title}</p>
+          {!!result.credentials?.length && <Alert tone="warning" title={t('credentialsHint')}>
+            <Button icon={<Download size={17} />} onClick={() => downloadCsv('new-account-credentials', ['Email', 'Temporary password'], result.credentials!.map(c => [c.email, c.temporaryPassword]))}>{t('credentials')}</Button>
+          </Alert>}
+          {!!result.invitationLinks?.length && <Alert tone="warning" title={t('inviteLinksHint')}>
+            <Button icon={<Download size={17} />} onClick={() => downloadCsv('invitation-links', ['Email', 'Invitation link'], result.invitationLinks!.map(c => [c.email, c.link]))}>{t('inviteLinks')}</Button>
+          </Alert>}
           {nothing ? <p className="muted">{t('nothingSaved')}</p> : (
             <StatGroup>
               <StatCard icon={<CheckCircle2 size={16} />} label={t('newRecords')} value={result.created} tone="success" />
@@ -356,7 +413,7 @@ function Review({ preview, stale, confirmed, setConfirmed, error, onAnother, t }
 
   const errorReport = () => downloadCsv(
     `import-errors-${preview.kind}`,
-    [t('csvRow'), t('csvAdmission'), t('csvStudent'), t('csvColumn'), t('csvProblem')],
+    [t('csvRow'), t(preview.kind === 'records' ? 'csvIdentifier' : 'csvAdmission'), t(preview.kind === 'records' ? 'csvRecord' : 'csvStudent'), t('csvColumn'), t('csvProblem')],
     issues.map((i) => [i.row, i.admissionNo, i.studentName, i.column, i.message]),
   );
 

@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, KeyRound, Mail, MailPlus, Pencil, Phone, Power, PowerOff, Settings2, Trash, UserPlus, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -338,6 +339,7 @@ export function TeachersPage() {
           </>
         }
       />
+      <RecordExcelPanel areas={[{ resource: 'teachers', label: 'Teachers' }]} />
       <Card>
         <div className="toolbar">
           <SearchInput value={search} onChange={setSearch} placeholder={t('searchPh')} label={t('searchLabel')} />

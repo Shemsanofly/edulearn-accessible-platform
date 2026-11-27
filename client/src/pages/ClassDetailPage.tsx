@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Accessibility, BookOpen, CalendarClock, ClipboardCheck, NotebookPen, Pencil, Plus, Trash, UserPlus, UserRound, Users,
@@ -128,6 +129,7 @@ export function ClassDetailPage() {
           </>
         }
       />
+      <RecordExcelPanel areas={[{ resource: 'students', label: 'Students', scope: { classId: data.id }, canEdit: isAdmin }, { resource: 'courses', label: 'Subjects and teachers', scope: { classId: data.id }, canEdit: isAdmin }]} />
       <StatGroup className="mb-3">
         <StatCard icon={<Users size={16} />} label={t('students')} value={`${data.studentCount} / ${data.capacity}`} tone={data.studentCount >= data.capacity ? 'warning' : 'primary'} hint={data.studentCount >= data.capacity ? t('classFull') : t('placesFree', { n: data.capacity - data.studentCount })} />
         <StatCard icon={<BookOpen size={16} />} label={t('subjects')} value={data.courses.length} tone="accent" hint={t('withoutTeacher', { n: data.courses.filter((c) => !c.teacherId).length })} />
