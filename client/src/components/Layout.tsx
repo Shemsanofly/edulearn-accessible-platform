@@ -237,7 +237,7 @@ export function Layout() {
         </main>
       </div>
 
-      {/* Phones: the four most-used pages one tap away, plus the full menu. */}
+      {/* Phones: the four most-used pages one tap away. The full menu is the ☰ button in the top bar. */}
       <nav className="bottom-nav" aria-label="Quick navigation">
         {NAV[user.role].flatMap((g) => g.items).slice(0, 4).map((item) => (
           <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => cx(isActive && 'active')}>
@@ -246,10 +246,6 @@ export function Layout() {
             {item.badge === 'messages' && unread > 0 && <span className="dot-count" aria-label={`${unread} unread`}>{unread}</span>}
           </NavLink>
         ))}
-        <button type="button" onClick={() => setNavOpen(true)} aria-label={t('menu')} aria-expanded={navOpen}>
-          <Menu aria-hidden />
-          <span>{t('menu')}</span>
-        </button>
       </nav>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

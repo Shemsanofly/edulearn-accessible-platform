@@ -110,7 +110,7 @@ function Toolbar({ children, onExport, canExport }: { children: React.ReactNode;
   return (
     <div className="row row-wrap between mb-3 no-print" style={{ alignItems: 'flex-end' }}>
       <div className="row row-wrap" style={{ gap: 12, alignItems: 'flex-end' }}>{children}</div>
-      <div className="row" style={{ gap: 8 }}>
+      <div className="row row-wrap" style={{ gap: 8 }}>
         <Button icon={<Download size={16} />} onClick={onExport} disabled={!canExport}>{t('exportCsv')}</Button>
         <Button icon={<Printer size={16} />} onClick={printPage} disabled={!canExport}>{t('print')}</Button>
       </div>
