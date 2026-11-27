@@ -48,6 +48,10 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return;
   }
   const pgErr = err as { code?: string; constraint?: string; detail?: string };
+  if (pgErr.code === '40001' || pgErr.code === '40P01') {
+    res.status(409).json({ error: 'Records changed while saving. Review the file again and retry.' });
+    return;
+  }
   // Map common PostgreSQL errors to helpful messages.
   if (pgErr.code === '23505') {
     const field = /\((.+?)\)=/.exec(pgErr.detail ?? '')?.[1] ?? 'value';

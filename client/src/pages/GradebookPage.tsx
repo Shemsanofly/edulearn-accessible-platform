@@ -5,7 +5,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import type { Assessment, AssessmentInput, AssessmentType, AttachmentInfo, Course, Gradebook, GradeStatus } from '../../../shared/types';
-import { ImportExportMenu } from '../components/ExcelTools';
+import { ImportExportMenu, recordTarget } from '../components/ExcelTools';
 import { Modal, useConfirm } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import {
@@ -307,7 +307,10 @@ function CourseGradebook({ courseId }: { courseId: number }) {
         description={course.teacherName ? t('taughtBy', { name: course.teacherName }) : t('noTeacher')}
         actions={
           <>
-            <ImportExportMenu target={{ kind: 'marks', courseId, label: `${course.subjectName} · ${course.className}`, assessments, canEdit: !readOnly, defaultAssessmentId: highlight }} />
+            <ImportExportMenu targets={[
+              { kind: 'marks', courseId, label: `${course.subjectName} · ${course.className}`, assessments, canEdit: !readOnly, defaultAssessmentId: highlight },
+              recordTarget({ resource: 'assessments', label: 'Assessments and assignments', scope: { courseId }, canEdit: !readOnly }),
+            ]} />
             {!readOnly && <Button variant="primary" icon={<Plus size={17} />} onClick={() => setEditing('new')}>{t('newAssessment')}</Button>}
           </>
         }

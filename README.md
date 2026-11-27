@@ -9,7 +9,7 @@ and phones.
 | **Frontend** | React 19 · Vite · TypeScript · TanStack Query · React Router |
 | **Backend** | Node.js · Express 5 · TypeScript · zod validation · JWT sessions in httpOnly cookies |
 | **Database** | PostgreSQL 14+ (plain SQL migrations) |
-| **Tests** | Vitest + Supertest integration tests against a real database (88 tests) |
+| **Tests** | Vitest + Supertest integration tests against a real database (142 tests) |
 
 > The whole application is TypeScript. `legacy/` holds the original HTML prototype for reference only;
 > `.gitattributes` excludes it from GitHub's language statistics.
@@ -56,6 +56,55 @@ Dashboard, my classes, attendance register (keyboard shortcuts P/L/A/E), gradebo
 file attachments, timetable, class announcements, messages with parents, student profiles, class reports, and
 an **Import/Export** menu (Excel, CSV and PDF) for marks and attendance (see the [teacher guide](#teacher-guide-excel-templates)).
 Teachers cannot see finances, create accounts or change school settings.
+
+### Import/Export across school records
+
+Management pages have the same **Import/Export** menu (import from CSV or Excel, export to CSV, Excel or PDF, CSV or
+Excel templates). Where a page manages several datasets, choose one under **Records** at the top of the menu first
+(for example invoices, payments or fee structures). Students, teachers and parents use the matching described in the
+[admin guide](#admin-guide-importing-students-teachers-and-parents); the areas below use Record IDs and import keys.
+
+| Area | Datasets |
+|---|---|
+| People | Students and class subject lists (on a class's page), parent-child links, invitations |
+| Classes and academic setup | Classes, subject/teacher assignments, subjects, terms, academic years, grading scales |
+| Teaching | Timetable, assessments/assignments, exams, report-card remarks |
+| Finance | Fee structures, invoices, payments |
+| School communication | Announcements, calendar events |
+
+The existing marks and attendance tools remain on their respective pages. Personal profile settings, branding,
+individual messages, and file attachments continue to use their dedicated forms.
+
+1. **Template** downloads 100 blank entry rows and column instructions; the Excel template also has reference sheets
+   listing the IDs of linked records you may use. Insert additional rows if needed, up to 1,000. Import referenced records first: for example,
+   create classes before students, then parents before parent-child links.
+2. Fill required columns marked `*`. Use `YYYY-MM-DD` dates, `HH:MM` times, `TRUE`/`FALSE`, and `|` between list items.
+   Nested grading bands and invitation access details use JSON; the template includes examples.
+3. Keep **Record ID** to update an existing record. For a new record leave ID blank and provide a stable, unique
+   **Import key** (particularly for invoices, payments, assessments, timetable entries, exams, events and notices).
+   People, classes, subjects, years and terms can also match their existing unique email/code/name. Reuse the same
+   import key when uploading a corrected file; changing the key means a new record.
+4. **Import** checks every row and shows new, changed, unchanged and invalid records. Nothing is saved until you
+   confirm. Changes require overwrite confirmation. Blank cells preserve saved values; omitted rows are not deleted.
+   Excel and CSV **exports** download all permitted records in that area (or the current class/course/exam where shown), including
+   IDs, so they can be edited and imported again (PDF is for printing). Search and pagination do not limit these exports.
+
+Permissions match the normal forms: administrators manage school records; teachers can import their assigned
+assessments, class announcements and class-teacher report remarks, and export their permitted working records.
+Parents and students cannot access management imports. Timetable clashes, class capacity, unique identifiers,
+linked records, grading bands, exam rules and payment balances are validated. Each batch saves atomically and is
+audited; a changed database requires a fresh review. Uploading an unchanged file again creates no duplicate records.
+Existing invoices and payments are read-only during import. Importing fee structures does not issue invoices or
+publish exam results automatically.
+
+New accounts return a **one-time credentials download** after saving. Existing passwords are never exported or
+changed by import. New invitations similarly return a one-time links download; bulk import does not send emails.
+Download these files before closing the result and share privately. Use the normal password reset or invitation
+resend action if the one-time file is lost. Import logs contain no passwords or invitation tokens.
+
+Migrations `005_record_imports.sql` (duplicate-upload tracking) and `006_people_imports.sql` run automatically on
+server startup. After
+pulling dependency changes, run `npm ci` and restart `npm run dev` (or rebuild your deployment).
 
 ### Teacher guide: Excel templates
 Use Excel (or any spreadsheet that saves CSV) when it's easier to fill in marks or a register offline. The
@@ -250,7 +299,7 @@ In Docker: `docker compose exec app node server/dist/db/cli.js deactivate-demo [
 ```
 ├── shared/types.ts            # API contract shared by server and client
 ├── server/
-│   ├── migrations/            # 001_init.sql … 005_people_imports.sql (applied automatically on start)
+│   ├── migrations/            # 001_init.sql … 006_people_imports.sql (applied automatically on start)
 │   ├── src/routes/            # auth, students, teachers, parents, academics, attendance, assessments,
 │   │                          # exams, fees, reports, communication, invitations, platform (settings, audit…)
 │   ├── src/lib/               # access rules, audit, notifications, grading, phone numbers, settings
@@ -274,10 +323,11 @@ Core: `users`, `students`, `teachers`, `guardians` (parent ↔ student, many-to-
 the administrator), `data_imports` (each import from Excel or CSV: who, when, counts and the before/after of every changed record).
 A grade is either a score or a status (`absent` / `exempt`).
 
-Add a schema change as a new numbered file (e.g. `server/migrations/006_library.sql`); it runs on the next start.
+Add a schema change as a new numbered file (e.g. `server/migrations/007_library.sql`); it runs on the next start.
 Upgrading an existing installation only needs a restart: `003_invitations.sql` adds the `invitations` table and
-`004_imports.sql` adds grade statuses and the `data_imports` table, and `005_people_imports.sql` lets that table
-record student, teacher and parent imports. None of them changes existing rows.
+`004_imports.sql` adds grade statuses and the `data_imports` table, `005_record_imports.sql` adds import keys for
+school records and `006_people_imports.sql` records student, teacher and parent imports. None of them changes existing
+rows.
 
 ## Fonts, icons and images
 

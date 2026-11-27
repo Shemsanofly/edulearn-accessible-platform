@@ -43,7 +43,7 @@ communicationRouter.get('/announcements', async (req, res) => {
   res.json(await visibleAnnouncements(me(req), 100));
 });
 
-const announcementSchema = z.object({
+export const announcementSchema = z.object({
   title: z.string().trim().min(1, 'Required').max(150),
   body: z.string().trim().min(1, 'Required').max(5000),
   audience: z.enum(['everyone', 'staff', 'students', 'parents', 'class']),
@@ -110,7 +110,7 @@ communicationRouter.delete('/announcements/:id', requireRole('admin', 'teacher')
 // ---------------------------------------------------------------------------
 // Calendar events
 // ---------------------------------------------------------------------------
-const eventSchema = z.object({
+export const eventSchema = z.object({
   title: z.string().trim().min(1, 'Required').max(150),
   description: optionalText(2000),
   type: z.enum(['academic', 'exam', 'holiday', 'meeting', 'sports', 'other']),

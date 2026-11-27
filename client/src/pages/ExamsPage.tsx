@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Award, CalendarRange, Download, Eye, EyeOff, NotebookPen, Pencil, Plus, Printer, Trash } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -87,6 +88,7 @@ export function ExamsPage() {
         description={isAdmin ? t('subtitle') : t('teacherSubtitle')}
         actions={isAdmin && <Button variant="primary" icon={<Plus size={17} />} onClick={() => { setEditing(null); setOpen(true); }}>{t('newExam')}</Button>}
       />
+      {isAdmin && <RecordExcelPanel areas={[{ resource: 'exams', label: 'Exams' }]} />}
       {isLoading ? (
         <div className="grid grid-2"><CardSkeleton rows={4} /><CardSkeleton rows={4} /></div>
       ) : error ? (
@@ -359,6 +361,7 @@ export function ExamDetailPage() {
           </>
         )}
       />
+      <RecordExcelPanel areas={[{ resource: 'report-remarks', label: 'Report-card remarks', scope: { examId: data.id } }]} />
       <Card className="mb-3">
         <div className="card-body">
           <div className="row between small"><span className="muted">{t('marksEntered', { done: data.marksEntered, total: data.marksExpected })}</span><strong className="num">{percent(pct)}</strong></div>

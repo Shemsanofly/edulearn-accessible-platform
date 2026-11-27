@@ -64,6 +64,7 @@ export interface SheetSpec {
   footerNote?: string;
   /** Extra reference sheets in Excel (for example the list of class names). */
   lists?: { name: string; header: string; values: string[] }[];
+  references?: { name: string; headers: string[]; rows: (string | number | null)[][] }[];
 }
 
 const fullMeta = (spec: SheetSpec, format: 'xlsx' | 'csv', headerRow: number): TemplateMeta => ({
@@ -142,12 +143,20 @@ export async function buildWorkbook(spec: SheetSpec): Promise<Buffer> {
 
   if (spec.meta) {
     // Identifier columns are locked so they aren't changed by accident; the server checks them anyway.
-    if (protect) await ws.protect('', { selectLockedCells: true, selectUnlockedCells: true, formatColumns: true, formatRows: true });
+    if (protect) await ws.protect('', { selectLockedCells: true, selectUnlockedCells: true, formatColumns: true, formatRows: true, insertRows: true });
     const meta = fullMeta(spec, 'xlsx', headerRow);
     const hidden = wb.addWorksheet(META_SHEET, { state: 'veryHidden' });
     hidden.getCell('A1').value = 'EduLearn template details. Do not edit.';
     hidden.getCell('A2').value = JSON.stringify(meta);
     hidden.getCell('A3').value = sign(meta);
+  }
+  for (const reference of spec.references ?? []) {
+    const sheet = wb.addWorksheet(reference.name);
+    sheet.addRow(reference.headers);
+    reference.rows.forEach((row) => sheet.addRow(row));
+    sheet.getRow(1).font = { bold: true };
+    reference.headers.forEach((_, i) => { sheet.getColumn(i + 1).width = 28; });
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
   }
   return Buffer.from(await wb.xlsx.writeBuffer());
 }

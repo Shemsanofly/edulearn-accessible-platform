@@ -938,8 +938,11 @@ export interface RegisterInput {
 // ---------------------------------------------------------------------------
 // Excel templates, import and export
 // ---------------------------------------------------------------------------
-export type ImportKind = 'marks' | 'attendance' | 'students' | 'teachers' | 'parents';
+export type ImportKind = 'marks' | 'attendance' | 'records' | 'students' | 'teachers' | 'parents';
 export type PeopleKind = 'students' | 'teachers' | 'parents';
+export type RecordResource = 'students' | 'teachers' | 'parents' | 'guardians' | 'classes' | 'courses'
+  | 'subjects' | 'terms' | 'academic-years' | 'grading-scales' | 'timetable' | 'assessments'
+  | 'exams' | 'report-remarks' | 'fee-structures' | 'invoices' | 'payments' | 'announcements' | 'events' | 'invitations';
 /** Templates come as Excel or CSV; exports also as PDF. */
 export type FileFormat = 'xlsx' | 'csv' | 'pdf';
 
@@ -1001,4 +1004,7 @@ export interface ImportResult {
   title: string;
   /** Only for people imports that created accounts. */
   accounts?: ImportedAccount[];
+  /** Only returned once for newly created accounts; never part of an ordinary export or audit log. */
+  credentials?: { email: string; temporaryPassword: string }[];
+  invitationLinks?: { email: string; link: string }[];
 }

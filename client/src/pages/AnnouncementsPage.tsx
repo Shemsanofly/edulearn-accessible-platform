@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Megaphone, Pin, PinOff, Plus, Trash } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -157,6 +158,7 @@ export function AnnouncementsPage() {
         description={canPost ? t('descStaff') : t('descFamily')}
         actions={canPost && <Button variant="primary" icon={<Plus size={18} />} onClick={() => setComposeOpen(true)}>{t('newAnnouncement')}</Button>}
       />
+      {canPost && <RecordExcelPanel areas={[{ resource: 'announcements', label: 'Announcements' }]} />}
       <div className="row row-wrap between mb-2">
         {filters.length > 2 ? <Segmented label={t('filterAudience')} options={filters} value={filter} onChange={setFilter} /> : <span />}
         <div style={{ minWidth: 240, flex: '0 1 320px' }}>

@@ -13,7 +13,7 @@ import { me, requireRole } from '../middleware/auth.js';
 
 export const feesRouter = Router();
 
-const money = z.coerce.number().positive('Must be more than 0').max(1_000_000_000).transform((n) => Math.round(n * 100) / 100);
+export const money = z.coerce.number().positive('Must be more than 0').max(1_000_000_000).transform((n) => Math.round(n * 100) / 100);
 
 feesRouter.get('/summary', requireRole('admin'), async (_req, res) => {
   res.json(await queryOne<FeeSummary>(
@@ -249,7 +249,7 @@ const STRUCTURE_SELECT = `
          (SELECT COALESCE(SUM(ib.amount_paid), 0) FROM invoice_balances ib WHERE ib.fee_structure_id = fs.id) AS collected
     FROM fee_structures fs LEFT JOIN terms t ON t.id = fs.term_id`;
 
-const structureSchema = z.object({
+export const structureSchema = z.object({
   name: z.string().trim().min(2, 'Required').max(120),
   amount: money,
   level: z.coerce.number().int().min(1).max(13).nullish(),

@@ -46,7 +46,7 @@ const detailsSchema = z.object({
   specialization: optionalText(120),
 });
 
-const invitationSchema = z.object({
+export const invitationSchema = z.object({
   email,
   role: z.enum(['admin', 'teacher', 'student', 'parent']),
   firstName: name,

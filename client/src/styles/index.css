@@ -633,6 +633,10 @@ a.list-item:hover { background: var(--surface-2); text-decoration: none; }
 .ie-menu-wrap { position: relative; }
 .ie-menu { min-width: 260px; max-height: min(70vh, 560px); overflow-y: auto; }
 .ie-menu .menu-item { padding: 10px 12px; }
+.ie-panel { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.ie-area { padding-bottom: 2px; }
+.ie-area .popover-label { display: block; }
+.ie-area select { display: block; width: calc(100% - 24px); margin: 0 12px 8px; }
 @media (max-width: 640px) {
   .ie-menu {
     position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px; min-width: 0; z-index: 70;

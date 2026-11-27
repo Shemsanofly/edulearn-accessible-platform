@@ -22,7 +22,7 @@ const CLASS_SELECT = `
          (SELECT COUNT(*)::int FROM class_subjects cs WHERE cs.class_id = c.id) AS subject_count
     FROM classes c LEFT JOIN users t ON t.id = c.homeroom_teacher_id`;
 
-const classSchema = z.object({
+export const classSchema = z.object({
   name: z.string().trim().min(1, 'Required').max(40),
   gradeLevel: z.coerce.number().int().min(1).max(13),
   section: z.string().trim().min(1).max(10).default('A'),
@@ -180,7 +180,7 @@ academicsRouter.delete('/courses/:id', adminOnly, async (req, res) => {
 // ---------------------------------------------------------------------------
 // Subjects
 // ---------------------------------------------------------------------------
-const subjectSchema = z.object({
+export const subjectSchema = z.object({
   name: z.string().trim().min(1, 'Required').max(60),
   code: z.string().trim().toUpperCase().min(1, 'Required').max(12),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a hex colour like #4361ee').default('#4361ee'),
@@ -227,7 +227,7 @@ academicsRouter.delete('/subjects/:id', adminOnly, async (req, res) => {
 // ---------------------------------------------------------------------------
 // Terms
 // ---------------------------------------------------------------------------
-const termSchema = z.object({
+export const termSchema = z.object({
   name: z.string().trim().min(1, 'Required').max(60),
   startsOn: isoDate,
   endsOn: isoDate,
@@ -317,7 +317,7 @@ academicsRouter.get('/timetable', async (req, res) => {
   res.json(await query<TimetableSlot>(`${SLOT_SELECT} WHERE ${where} ORDER BY ts.day_of_week, ts.starts_at`, params));
 });
 
-const slotSchema = z.object({
+export const slotSchema = z.object({
   courseId: id,
   dayOfWeek: z.coerce.number().int().min(1).max(7),
   startsAt: time,

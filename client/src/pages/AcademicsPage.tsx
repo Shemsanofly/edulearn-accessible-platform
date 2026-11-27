@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, CalendarDays, CalendarRange, CheckCircle2, Pencil, Plus, Scale, Star, Trash, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -91,6 +92,7 @@ export function AcademicsPage() {
   return (
     <>
       <PageHeader title={t('title')} description={t('subtitle')} />
+      <RecordExcelPanel key={tab} areas={[{ resource: ({ subjects: 'subjects', terms: 'terms', years: 'academic-years', grading: 'grading-scales' } as const)[tab], label: t(tab) }]} />
       <Tabs
         label={t('tabsLabel')}
         value={tab}

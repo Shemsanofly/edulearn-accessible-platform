@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, DoorOpen, Pencil, Plus, School, Trash, UserRound, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -228,6 +229,7 @@ export function ClassesPage() {
         description={t('desc')}
         actions={<Button variant="primary" icon={<Plus size={18} />} onClick={() => { setEditing(null); setOpen(true); }}>{t('newClass')}</Button>}
       />
+      <RecordExcelPanel areas={[{ resource: 'classes', label: 'Classes' }, { resource: 'courses', label: 'Subjects and teachers' }]} />
       {isLoading ? (
         <div className="grid grid-3">{[0, 1, 2].map((i) => <CardSkeleton key={i} rows={3} />)}</div>
       ) : error ? (

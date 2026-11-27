@@ -4,10 +4,10 @@ import {
   RefreshCw, Sheet, Upload,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
-import type { Assessment, FileFormat, ImportPreview, ImportPreviewRow, ImportResult, PeopleKind, Term } from '../../../shared/types';
+import type { Assessment, FileFormat, ImportPreview, ImportPreviewRow, ImportResult, PeopleKind, RecordResource, Term } from '../../../shared/types';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { downloadCsv } from '../lib/export';
-import { useT } from '../lib/i18n';
+import { useI18n, useT } from '../lib/i18n';
 import { Modal } from './Modal';
 import { useToast } from './Toast';
 import { Alert, Badge, Button, Field, Input, Select, StatCard, StatGroup, useDismiss } from './ui';
@@ -49,6 +49,10 @@ const M = {
     downloadAccounts: 'Download sign-in details',
     csvRow: 'Row', csvId: 'Identifier', csvName: 'Name', csvColumn: 'Column', csvProblem: 'Problem',
     csvEmail: 'Email', csvPassword: 'Temporary password',
+    area: 'Records', recordsHint: 'Fill in the template, then import it. Use the reference sheets in the Excel template for linked IDs. Exports hold the saved records and can be edited and imported again.',
+    recordsDesc: 'Upload a completed template or an export you edited. You’ll see every change before anything is saved.',
+    inviteLinksTitle: 'Invitation links', inviteLinksBody: 'Download the links now and share them privately. Invitations from an import are not emailed.',
+    downloadInviteLinks: 'Download invitation links', csvLink: 'Invitation link',
   },
   sw: {
     menu: 'Leta/Hamisha',
@@ -84,6 +88,10 @@ const M = {
     downloadAccounts: 'Pakua taarifa za kuingia',
     csvRow: 'Safu', csvId: 'Namba', csvName: 'Jina', csvColumn: 'Safu wima', csvProblem: 'Tatizo',
     csvEmail: 'Barua pepe', csvPassword: 'Nenosiri la muda',
+    area: 'Taarifa', recordsHint: 'Jaza kiolezo, kisha kilete. Tumia karatasi za marejeo kwenye kiolezo cha Excel kwa vitambulisho. Faili zilizohamishwa zina taarifa zilizohifadhiwa na zinaweza kuhaririwa na kuletwa tena.',
+    recordsDesc: 'Pakia kiolezo kilichojazwa au faili uliyohamisha na kuhariri. Utaona kila badiliko kabla ya kuhifadhi.',
+    inviteLinksTitle: 'Viungo vya mwaliko', inviteLinksBody: 'Pakua viungo sasa na uvishiriki kwa siri. Mialiko ya uletaji haitumwi kwa barua pepe.',
+    downloadInviteLinks: 'Pakua viungo vya mwaliko', csvLink: 'Kiungo cha mwaliko',
   },
 };
 type T = ReturnType<typeof useT<keyof typeof M.en>>;
@@ -92,7 +100,19 @@ type UploadFormat = 'xlsx' | 'csv';
 export type ExcelTarget =
   | { kind: 'marks'; courseId: number; label: string; assessments: Assessment[]; canEdit: boolean; defaultAssessmentId?: number | null }
   | { kind: 'attendance'; classId: number; className: string; date: string }
-  | { kind: PeopleKind };
+  | { kind: PeopleKind }
+  | { kind: 'records'; resource: RecordResource; label: string; scope: Record<string, number>; canEdit: boolean };
+
+const SW_AREA: Record<RecordResource, string> = {
+  students: 'Wanafunzi', teachers: 'Walimu', parents: 'Akaunti za wazazi', guardians: 'Uhusiano wa wazazi na watoto',
+  classes: 'Madarasa', courses: 'Masomo na walimu', subjects: 'Masomo', terms: 'Mihula',
+  'academic-years': 'Miaka ya masomo', 'grading-scales': 'Viwango vya madaraja', timetable: 'Ratiba',
+  assessments: 'Tathmini na kazi', exams: 'Mitihani', 'report-remarks': 'Maoni ya ripoti',
+  'fee-structures': 'Miundo ya ada', invoices: 'Ankara', payments: 'Malipo', announcements: 'Matangazo',
+  events: 'Matukio ya kalenda', invitations: 'Mialiko',
+};
+const endpoint = (target: ExcelTarget, step: string) =>
+  target.kind === 'records' ? `/imports/records/${target.resource}/${step}` : `/imports/${target.kind}/${step}`;
 
 const isPeople = (t: ExcelTarget): t is { kind: PeopleKind } => t.kind === 'students' || t.kind === 'teachers' || t.kind === 'parents';
 const FORMAT_NAME: Record<FileFormat, string> = { xlsx: 'Excel', csv: 'CSV', pdf: 'PDF' };
@@ -103,29 +123,49 @@ const ACCEPT: Record<UploadFormat, string> = {
 
 type Open = { what: 'template'; format: UploadFormat } | { what: 'import'; format: UploadFormat } | { what: 'export'; format: FileFormat } | null;
 
+export interface RecordArea { resource: RecordResource; label: string; scope?: Record<string, number>; canEdit?: boolean }
+export const recordTarget = (a: RecordArea): ExcelTarget =>
+  ({ kind: 'records', resource: a.resource, label: a.label, scope: a.scope ?? {}, canEdit: a.canEdit ?? true });
+
+/** Import/Export for one or more record areas (classes, fees, exams…), placed above a page's main content. */
+export function RecordExcelPanel({ areas, extra = [] }: { areas: RecordArea[]; extra?: ExcelTarget[] }) {
+  const targets = [...extra, ...areas.map(recordTarget)];
+  if (!targets.length) return null;
+  return <div className="ie-panel"><ImportExportMenu targets={targets} /></div>;
+}
+
 /**
  * One "Import/Export" button with a menu: import from CSV or Excel, export to CSV, Excel or PDF, and download a CSV or
- * Excel template. Used on the gradebook, attendance, students, teachers and parents pages.
+ * Excel template. When a page has several kinds of records (for example invoices and payments), the menu starts with
+ * a choice of which one.
  */
-export function ImportExportMenu({ target }: { target: ExcelTarget }) {
+export function ImportExportMenu({ target: single, targets: many }: { target?: ExcelTarget; targets?: ExcelTarget[] }) {
   const t = useT(M);
+  const { lang } = useI18n();
   const toast = useToast();
+  const targets = many ?? (single ? [single] : []);
+  const [index, setIndex] = useState(0);
+  const target = targets[Math.min(index, targets.length - 1)];
   const [menuOpen, setMenuOpen] = useState(false);
   const [open, setOpen] = useState<Open>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   useDismiss(menuOpen, () => setMenuOpen(false), wrap, button);
-  const canEdit = target.kind !== 'marks' || target.canEdit;
+  if (!target) return null;
+  const canEdit = target.kind === 'marks' || target.kind === 'records' ? target.canEdit : true;
+  const name = (x: ExcelTarget) => x.kind === 'records' ? (lang === 'sw' ? SW_AREA[x.resource] : x.label) : t(`what_${x.kind}`);
+  const what = target.kind === 'records' ? (lang === 'sw' ? name(target) : name(target).toLowerCase()) : name(target);
 
   const run = async (next: Exclude<Open, null>) => {
     setMenuOpen(false);
     // Files that need no further choices download straight away.
     const direct =
-      (next.what === 'export' && (target.kind === 'marks' || isPeople(target))) ||
-      (next.what === 'template' && isPeople(target));
+      (next.what === 'export' && target.kind !== 'attendance') ||
+      (next.what === 'template' && (isPeople(target) || target.kind === 'records'));
     if (!direct) return setOpen(next);
     try {
       if (target.kind === 'marks') await api.download('/imports/marks/export', { courseId: target.courseId, format: next.format });
+      else if (target.kind === 'records') await api.download(endpoint(target, next.what), { ...target.scope, format: next.format });
       else await api.download(`/imports/${target.kind}/${next.what}`, { format: next.format });
       toast.success(next.what === 'export' ? t('exported') : t('downloaded'), next.what === 'template' ? t('downloadedHint') : undefined);
     } catch (err) {
@@ -151,6 +191,15 @@ export function ImportExportMenu({ target }: { target: ExcelTarget }) {
       </Button>
       {menuOpen && (
         <div className="popover ie-menu" role="menu" aria-label={t('menu')}>
+          {targets.length > 1 && (
+            <div className="ie-area">
+              <label className="popover-label" htmlFor="ie-area">{t('area')}</label>
+              <Select id="ie-area" value={index} onChange={(e) => setIndex(Number(e.target.value))}>
+                {targets.map((x, i) => <option key={i} value={i}>{name(x).charAt(0).toUpperCase() + name(x).slice(1)}</option>)}
+              </Select>
+              <div className="menu-divider" />
+            </div>
+          )}
           {canEdit && (
             <>
               <div className="popover-label">{t('importGroup')}</div>
@@ -159,7 +208,7 @@ export function ImportExportMenu({ target }: { target: ExcelTarget }) {
               <div className="menu-divider" />
             </>
           )}
-          <div className="popover-label">{t('exportGroup', { what: t(`what_${target.kind}`) })}</div>
+          <div className="popover-label">{t('exportGroup', { what })}</div>
           {item(<FileText size={17} aria-hidden />, t('exportCsv'), { what: 'export', format: 'csv' })}
           {item(<FileSpreadsheet size={17} aria-hidden />, t('exportExcel'), { what: 'export', format: 'xlsx' })}
           {item(<FileDown size={17} aria-hidden />, t('exportPdf'), { what: 'export', format: 'pdf' })}
@@ -173,7 +222,7 @@ export function ImportExportMenu({ target }: { target: ExcelTarget }) {
           )}
         </div>
       )}
-      {open?.what === 'template' && !isPeople(target) && <TemplateDialog target={target} format={open.format} onClose={() => setOpen(null)} />}
+      {open?.what === 'template' && (target.kind === 'marks' || target.kind === 'attendance') && <TemplateDialog target={target} format={open.format} onClose={() => setOpen(null)} />}
       {open?.what === 'import' && <ImportDialog target={target} format={open.format} onClose={() => setOpen(null)} />}
       {open?.what === 'export' && target.kind === 'attendance' && <ExportDialog target={target} format={open.format} onClose={() => setOpen(null)} />}
     </div>
@@ -187,6 +236,7 @@ function ContextFields({ target, assessmentId, setAssessmentId, date, setDate, t
   const terms = useQuery({ queryKey: ['terms'], queryFn: () => api.get<Term[]>('/terms'), enabled: target.kind === 'marks' });
   const [termId, setTermId] = useState<string>('');
   if (isPeople(target)) return null;
+  if (target.kind === 'records') return <Alert tone="info">{t('recordsHint')}</Alert>;
   if (target.kind === 'attendance') {
     return (
       <Field label={t('date')}>
@@ -226,12 +276,12 @@ function useContextState(target: ExcelTarget) {
   const [assessmentId, setAssessmentId] = useState<number | null>(initial);
   const [date, setDate] = useState(target.kind === 'attendance' ? target.date : todayIso());
   const query: Record<string, string | number | null> = target.kind === 'marks' ? { assessmentId }
-    : target.kind === 'attendance' ? { classId: target.classId, date } : {};
+    : target.kind === 'attendance' ? { classId: target.classId, date } : target.kind === 'records' ? target.scope : {};
   const ready = target.kind === 'marks' ? assessmentId !== null : target.kind === 'attendance' ? !!date : true;
   return { assessmentId, setAssessmentId, date, setDate, query, ready };
 }
 
-function TemplateDialog({ target, format, onClose }: { target: Exclude<ExcelTarget, { kind: PeopleKind }>; format: UploadFormat; onClose: () => void }) {
+function TemplateDialog({ target, format, onClose }: { target: Extract<ExcelTarget, { kind: 'marks' | 'attendance' }>; format: UploadFormat; onClose: () => void }) {
   const t = useT(M);
   const toast = useToast();
   const ctx = useContextState(target);
@@ -313,7 +363,7 @@ function ImportDialog({ target, format, onClose }: { target: ExcelTarget; format
   const mime = (f: File) => f.type || (f.name.toLowerCase().endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   const url = (step: 'preview' | 'commit', extra: Record<string, string> = {}) => {
     const params = Object.fromEntries(Object.entries(ctx.query).filter(([, v]) => v !== null && v !== '').map(([k, v]) => [k, String(v)]));
-    return `/imports/${target.kind}/${step}?${new URLSearchParams({ ...params, ...extra })}`;
+    return `${endpoint(target, step)}?${new URLSearchParams({ ...params, ...extra })}`;
   };
 
   const check = async (refresh = false) => {
@@ -384,7 +434,8 @@ function ImportDialog({ target, format, onClose }: { target: ExcelTarget; format
       variant="drawer"
       size="lg"
       title={preview ? t('review') : t('importTitle', { format: FORMAT_NAME[format] })}
-      description={preview ? preview.title : isPeople(target) ? t('importPeopleDesc', { key: peopleKey }) : t('importDesc')}
+      description={preview ? preview.title : isPeople(target) ? t('importPeopleDesc', { key: peopleKey })
+        : target.kind === 'records' ? `${target.label} · ${t('recordsDesc')}` : t('importDesc')}
       onSubmit={() => (preview ? save() : check())}
       footer={preview ? (
         <>
@@ -407,14 +458,16 @@ function ImportDialog({ target, format, onClose }: { target: ExcelTarget; format
 
 function ImportDone({ result, onClose, t }: { result: ImportResult; onClose: () => void; t: T }) {
   const nothing = result.created + result.updated === 0;
-  const accounts = result.accounts ?? [];
+  const accounts = result.accounts ?? (result.credentials ?? []).map((c) => ({ name: '', email: c.email, identifier: null, temporaryPassword: c.temporaryPassword }));
+  const links = result.invitationLinks ?? [];
+  const downloadLinks = () => downloadCsv(`invitation-links-${new Date().toISOString().slice(0, 10)}`, [t('csvEmail'), t('csvLink')], links.map((l) => [l.email, l.link]));
   const downloadAccounts = () => downloadCsv(
     `sign-in-details-${new Date().toISOString().slice(0, 10)}`,
     [t('csvName'), t('csvEmail'), t('csvId'), t('csvPassword')],
     accounts.map((a) => [a.name, a.email, a.identifier, a.temporaryPassword]),
   );
   return (
-    <Modal open onClose={onClose} title={t('doneTitle')} size={accounts.length ? 'lg' : 'md'} footer={<Button variant="primary" onClick={onClose}>{t('done')}</Button>}>
+    <Modal open onClose={onClose} title={t('doneTitle')} size={accounts.length || links.length ? 'lg' : 'md'} footer={<Button variant="primary" onClick={onClose}>{t('done')}</Button>}>
       <div role="status" className="stack">
         <span className="empty-icon" style={{ margin: 0, background: 'var(--success-soft)', color: 'var(--success)' }} aria-hidden><CheckCircle2 size={24} /></span>
         <p className="bold">{result.title}</p>
@@ -429,6 +482,12 @@ function ImportDone({ result, onClose, t }: { result: ImportResult; onClose: () 
           <Alert tone="warning" icon={<KeyRound size={20} />} title={accounts.length === 1 ? t('accountsTitleOne') : t('accountsTitle', { n: accounts.length })}>
             <p>{t('accountsBody')}</p>
             <div className="mt-1"><Button size="sm" icon={<Download size={15} />} onClick={downloadAccounts}>{t('downloadAccounts')}</Button></div>
+          </Alert>
+        )}
+        {links.length > 0 && (
+          <Alert tone="warning" title={t('inviteLinksTitle')}>
+            <p>{t('inviteLinksBody')}</p>
+            <div className="mt-1"><Button size="sm" icon={<Download size={15} />} onClick={downloadLinks}>{t('downloadInviteLinks')}</Button></div>
           </Alert>
         )}
       </div>

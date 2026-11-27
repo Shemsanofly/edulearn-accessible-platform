@@ -1,3 +1,4 @@
+import { RecordExcelPanel } from '../components/ExcelTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle, Banknote, BellRing, CheckCircle2, ChevronDown, ChevronUp, FilePlus2, FileText, Info, Landmark, Layers, Pencil,
@@ -207,6 +208,7 @@ function AdminFees() {
           </>
         }
       />
+      <RecordExcelPanel areas={[{ resource: 'invoices', label: 'Invoices' }, { resource: 'payments', label: 'Payments' }, { resource: 'fee-structures', label: 'Fee structures' }]} />
 
       <StatGroup className="mb-3">
         <StatCard icon={<Receipt size={16} />} label={t('billed')} value={s ? money(s.billed) : '…'} hint={t('allInvoices')} />

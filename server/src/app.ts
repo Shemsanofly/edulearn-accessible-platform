@@ -20,6 +20,7 @@ import { invitationsRouter } from './routes/invitations.js';
 import { parentsRouter } from './routes/parents.js';
 import { platformRouter, publicRouter } from './routes/platform.js';
 import { reportsRouter } from './routes/reports.js';
+import { recordImportsRouter } from './routes/record-imports.js';
 import { studentsRouter } from './routes/students.js';
 import { teachersRouter } from './routes/teachers.js';
 import { usersRouter } from './routes/users.js';
@@ -52,6 +53,7 @@ export function createApp() {
   api.use('/', assignmentsRouter);
   api.use('/assessments', assessmentsRouter);
   api.use('/gradebook', gradebookRouter);
+  api.use('/imports/records', recordImportsRouter);
   api.use('/imports', importsRouter);
   api.use('/imports', peopleImportsRouter);
   api.use('/fees', feesRouter);
