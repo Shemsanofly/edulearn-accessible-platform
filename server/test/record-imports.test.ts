@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { RecordResource } from '../../shared/types.js';
 import { pool, query, queryOne } from '../src/db/pool.js';
 import { resources } from '../src/lib/record-resources.js';
-import { XLSX_MIME } from '../src/lib/xlsx.js';
+import { parseCsv, XLSX_MIME } from '../src/lib/xlsx.js';
 import { app, idOf, signIn } from './helpers.js';
 type Agent = Awaited<ReturnType<typeof signIn>>;
 let admin: Agent, teacher: Agent, parent: Agent, student: Agent;
@@ -269,5 +269,42 @@ describe('Excel controls for all managed records', () => {
         expect(preview.body.issues, JSON.stringify(preview.body.issues)).toEqual([]);
         expect(preview.body.counts.create).toBe(0);
         expect(preview.body.counts.update).toBe(0);
+    });
+});
+
+describe('CSV and PDF for managed records', () => {
+    const csvLine = (cells: string[]) => cells.map(c => `"${c.replace(/"/g, '""')}"`).join(',');
+    it('imports new records from a CSV template and re-uploading changes nothing', async () => {
+        const tpl = await download(admin, url('subjects', 'template', '?format=csv'));
+        expect(tpl.status).toBe(200);
+        expect(tpl.headers['content-type']).toContain('text/csv');
+        const rows = parseCsv(tpl.body.toString('utf8').replace(/^﻿/, ''));
+        const header = rows.findIndex(r => r[0]?.startsWith('Record ID'));
+        expect(header).toBeGreaterThan(0);
+        const cols = rows[header];
+        const line = cols.map(() => '');
+        line[cols.indexOf('Import key (new records)')] = 'csv-subject-1';
+        line[cols.indexOf('Subject name *')] = 'CSV Bulk Subject';
+        line[cols.indexOf('Subject code *')] = 'CSVB1';
+        const text = [...rows.slice(0, header + 1).map(csvLine), csvLine(line)].join('\r\n');
+        const send = (step: string, params = '') => admin.post(url('subjects', step, params)).set('Content-Type', 'text/csv').send(Buffer.from(text));
+        const preview = await send('preview');
+        expect(preview.status, JSON.stringify(preview.body)).toBe(200);
+        expect(preview.body.issues).toEqual([]);
+        expect(preview.body.counts.create).toBe(1);
+        const saved = await send('commit', `?fingerprint=${preview.body.fingerprint}`);
+        expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+        expect(await queryOne('SELECT id FROM subjects WHERE code = $1', ['CSVB1'])).toBeTruthy();
+        const again = await send('preview');
+        expect(again.body.counts.create).toBe(0);
+    });
+    it('exports records as CSV and PDF, and refuses a PDF template', async () => {
+        const csv = await download(admin, url('subjects', 'export', '?format=csv'));
+        expect(csv.status).toBe(200);
+        expect(csv.body.toString('utf8')).toContain('CSV Bulk Subject');
+        const pdf = await download(admin, url('subjects', 'export', '?format=pdf'));
+        expect(pdf.status).toBe(200);
+        expect(pdf.body.subarray(0, 5).toString()).toBe('%PDF-');
+        expect((await download(admin, url('subjects', 'template', '?format=pdf'))).status).toBe(400);
     });
 });

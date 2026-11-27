@@ -15,6 +15,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { examsRouter } from './routes/exams.js';
 import { feesRouter } from './routes/fees.js';
 import { importsRouter } from './routes/imports.js';
+import { peopleImportsRouter } from './routes/peopleImports.js';
 import { invitationsRouter } from './routes/invitations.js';
 import { parentsRouter } from './routes/parents.js';
 import { platformRouter, publicRouter } from './routes/platform.js';
@@ -54,6 +55,7 @@ export function createApp() {
   api.use('/gradebook', gradebookRouter);
   api.use('/imports/records', recordImportsRouter);
   api.use('/imports', importsRouter);
+  api.use('/imports', peopleImportsRouter);
   api.use('/fees', feesRouter);
   api.use('/', examsRouter);
   api.use('/reports', reportsRouter);

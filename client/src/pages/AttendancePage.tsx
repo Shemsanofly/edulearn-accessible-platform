@@ -3,7 +3,7 @@ import { CheckCheck, ChevronLeft, ChevronRight, ClipboardCheck, History, Keyboar
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { AttendanceRegister, AttendanceStatus, ClassListItem } from '../../../shared/types';
-import { ExcelTools } from '../components/ExcelTools';
+import { ImportExportMenu } from '../components/ExcelTools';
 import { useToast } from '../components/Toast';
 import {
   Alert, Avatar, Badge, Button, Card, CardHeader, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, ProgressBar,
@@ -136,7 +136,7 @@ export function AttendancePage() {
             </Field>
             {selected && (
               <div className="row row-wrap" style={{ gap: 8, alignSelf: 'flex-end' }}>
-                <ExcelTools target={{ kind: 'attendance', classId: selected.id, className: selected.name, date }} />
+                <ImportExportMenu target={{ kind: 'attendance', classId: selected.id, className: selected.name, date }} />
               </div>
             )}
           </>

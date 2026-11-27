@@ -1,10 +1,10 @@
-import { RecordExcelPanel } from '../components/ExcelTools';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, Link2, MailPlus, Pencil, Power, PowerOff, Trash, UserPlus, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { CreatedAccount, Paginated, ParentInput, ParentListItem, StudentListItem } from '../../../shared/types';
 import { Modal } from '../components/Modal';
+import { ImportExportMenu, recordTarget } from '../components/ExcelTools';
 import { useToast } from '../components/Toast';
 import {
   Alert, Avatar, Badge, Button, ButtonLink, Card, CardSkeleton, EmptyState, ErrorState, Field, Input, PageHeader, Pagination, PersonCell,
@@ -303,12 +303,12 @@ export function ParentsPage() {
         description={t('desc')}
         actions={
           <>
+            <ImportExportMenu targets={[{ kind: 'parents' }, recordTarget({ resource: 'guardians', label: 'Parent-child links' })]} />
             <ButtonLink to="/invitations?new=1&as=parent" icon={<MailPlus size={17} />}>{tc('inviteSomeone')}</ButtonLink>
             <Button variant="primary" icon={<UserPlus size={18} />} onClick={() => openForm(null)}>{t('add')}</Button>
           </>
         }
       />
-      <RecordExcelPanel areas={[{ resource: 'parents', label: 'Parent accounts' }, { resource: 'guardians', label: 'Parent-child links' }]} />
       <Card>
         <div className="toolbar">
           <SearchInput value={search} onChange={setSearch} placeholder={t('searchPh')} label={t('searchLabel')} />

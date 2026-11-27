@@ -4,7 +4,7 @@ import type { ImportPreview, ImportPreviewRow, ImportResult, RecordResource } fr
 import { pool, query, queryOne, transaction } from '../db/pool.js';
 import { authorizeResource, loadReferences, resources, type Column, type DataRow, type Db, type ResourceContext } from '../lib/record-resources.js';
 import { badRequest, conflict, HttpError, intParam, notFound } from '../lib/http.js';
-import { buildWorkbook, readCell, readTemplate, sendWorkbook, type Template } from '../lib/xlsx.js';
+import { formatParam, readCell, readTemplate, sendTable, type SheetSpec, type Template } from '../lib/xlsx.js';
 import { me, requireRole } from '../middleware/auth.js';
 export const recordImportsRouter = Router();
 recordImportsRouter.use(requireRole('admin', 'teacher'));
@@ -69,19 +69,19 @@ async function workbook(req: Request, template: boolean) {
                 return typeof value === 'number' ? value : String(value);
             })]);
     const usedRefs = [...new Set(spec.columns.flatMap(c => c.ref ? [c.ref] : []))];
-    const buffer = await buildWorkbook({
+    const sheet: SheetSpec = {
         sheetName: 'Records', title: `${spec.label} — ${template ? 'entry template' : 'export'}`,
         details: [['Area', spec.label], ['Generated', new Date().toISOString()], ...Object.entries(scope).map(([k, v]) => [k, String(v)] as [
                 string,
                 string
             ])],
         instructions: [
-            'Required columns have *. Fill new rows, save as .xlsx, then Import and review before saving. Maximum 1,000 rows.',
+            'Required columns have *. Fill new rows, save in the same format (Excel or CSV), then Import and review before saving. Maximum 1,000 rows.',
             'Keep Record ID when editing existing rows. For new rows leave it blank and enter a unique, permanent Import key (e.g. school-2026-001). Reuse that key on re-upload.',
             'Email / subject code / class name / year or term name also match existing records. Use Export to edit existing data.',
             'Blank cells keep existing values. Use the regular editor to clear a saved value. Missing rows are never deleted.',
             'Dates: YYYY-MM-DD. Times: HH:MM (24-hour). Booleans: TRUE/FALSE. List values: separate with |.',
-            'Copy numeric IDs from the reference sheets. Do not use names instead of IDs. Import referenced people/classes/subjects first.',
+            'Copy numeric IDs from the reference sheets of the Excel template (or from an Excel export). Do not use names instead of IDs. Import referenced people/classes/subjects first.',
             ...(resource === 'grading-scales' ? ['Grade bands JSON example: [{"grade":"A","minPercent":75,"maxPercent":100,"points":1,"remark":"Excellent"},{"grade":"B","minPercent":0,"maxPercent":74,"points":2,"remark":"Pass"}]'] : []),
             ...(resource === 'invitations' ? ['Parent access details example: {"children":[{"studentId":1,"relationship":"mother"}]}. Teacher: {"specialization":"Mathematics"}. Student: {"classId":1}. Administrator: {}.', 'Invitation links are available once after saving. Download and share them privately. Import does not email invitations automatically.'] : []),
             ...(['students', 'teachers', 'parents'].includes(resource) ? ['New accounts receive generated temporary passwords after Save import. Download the one-time credentials file and share privately. Existing passwords are unchanged.'] : []),
@@ -92,11 +92,24 @@ async function workbook(req: Request, template: boolean) {
             const keys = Object.keys(values[0] ?? { id: null, name: null });
             return { name: key, headers: keys, rows: values.map(row => keys.map(k => typeof row[k] === 'number' ? Number(row[k]) : row[k] == null ? null : String(row[k]))) };
         }),
-    });
-    return { resource, buffer };
+    };
+    return { resource, sheet };
 }
-recordImportsRouter.get('/:resource/template', async (req, res) => { const out = await workbook(req, true); sendWorkbook(res, `${out.resource}-template.xlsx`, out.buffer); });
-recordImportsRouter.get('/:resource/export', async (req, res) => { const out = await workbook(req, false); sendWorkbook(res, `${out.resource}-export.xlsx`, out.buffer); });
+// Templates come as Excel or CSV. Excel and CSV exports are signed too, so they can be edited and imported again;
+// PDF exports are for reading and printing only.
+recordImportsRouter.get('/:resource/template', async (req, res) => {
+    const format = formatParam(req.query.format, false);
+    const out = await workbook(req, true);
+    await sendTable(res, `${out.resource}-template`, format, out.sheet);
+});
+recordImportsRouter.get('/:resource/export', async (req, res) => {
+    const format = formatParam(req.query.format, true);
+    const out = await workbook(req, false);
+    const sheet = format === 'pdf'
+        ? { ...out.sheet, columns: out.sheet.columns.filter(c => c.key !== 'importKey'), rows: out.sheet.rows.map(r => r.filter((_, i) => out.sheet.columns[i].key !== 'importKey')) }
+        : out.sheet;
+    await sendTable(res, `${out.resource}-export`, format, sheet);
+});
 interface Write {
     excelRow: number;
     input: DataRow;
